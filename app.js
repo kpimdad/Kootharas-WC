@@ -703,11 +703,13 @@ async function savePrediction() {
     if (!existing) pred.submittedAt = serverTimestamp();
     await setDoc(doc(STATE.db, 'predictions', predId), pred, { merge: true });
 
-    // Track last-minute count on user doc (only count first last-minute save per match)
+    // Track last-minute count — isolated so a failure here never blocks the success toast
     if (lastMin && !existing?.lastMinute) {
-      const uRef  = doc(STATE.db, 'users', STATE.session.userId);
-      const uSnap = await getDoc(uRef);
-      if (uSnap.exists()) await updateDoc(uRef, { lastMinuteCount: (uSnap.data().lastMinuteCount || 0) + 1 });
+      try {
+        const uRef  = doc(STATE.db, 'users', STATE.session.userId);
+        const uSnap = await getDoc(uRef);
+        if (uSnap.exists()) await updateDoc(uRef, { lastMinuteCount: (uSnap.data().lastMinuteCount || 0) + 1 });
+      } catch (e) { console.warn('lastMinuteCount update failed (non-critical):', e); }
     }
 
     STATE.predictions[m.matchId] = { ...pred, pointsAwarded: existing?.pointsAwarded ?? null };

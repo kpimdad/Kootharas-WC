@@ -1508,15 +1508,15 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
   .bnav-label { font-size: 0.68rem; }
 
   /* ── Login — scale down to fit one screen ── */
-  #view-login.active { gap: 1rem; padding: 1.25rem 1rem; }
-  .login-trophy { font-size: 3.5rem; margin-bottom: 0.6rem; }
-  .login-title { font-size: 2.5rem; margin-bottom: 0.25rem; }
-  .login-subtitle { font-size: 0.78rem; letter-spacing: 0.15em; }
-  .login-card { padding: 1.25rem; }
-  .form-group { margin-bottom: 0.9rem; }
-  .form-label { font-size: 0.72rem; margin-bottom: 0.35rem; }
-  .form-select, .form-input { font-size: 1rem; padding: 0.75rem 1rem; }
-  .btn { font-size: 1rem; padding: 0.65rem 1.25rem; }
+  #view-login.active { gap: 0.75rem; padding: 1rem; }
+  .login-trophy { font-size: 2.8rem; margin-bottom: 0.4rem; }
+  .login-title { font-size: 2.1rem; margin-bottom: 0.2rem; }
+  .login-subtitle { font-size: 0.72rem; letter-spacing: 0.12em; }
+  .login-card { padding: 1rem 1.1rem; }
+  .form-group { margin-bottom: 0.75rem; }
+  .form-label { font-size: 0.7rem; margin-bottom: 0.3rem; }
+  .form-select, .form-input { font-size: 0.95rem; padding: 0.65rem 0.9rem; }
+  .btn { font-size: 0.95rem; padding: 0.6rem 1.25rem; }
 
   /* ── My Predictions — hide accuracy stat ── */
   .stats-bar { grid-template-columns: repeat(3, 1fr); }
