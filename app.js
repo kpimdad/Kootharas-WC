@@ -1191,7 +1191,7 @@ function renderAdminMatches() {
   const byDay = {};
   STATE.matches.forEach(m => { if (!byDay[m.matchDay]) byDay[m.matchDay] = []; byDay[m.matchDay].push(m); });
 
-  const apiKeyMissing = !FOOTBALL_API_KEY;
+  const apiKeyMissing = typeof FOOTBALL_API_KEY === 'undefined' || !FOOTBALL_API_KEY;
   const fetchBtn = `
     <div style="margin-bottom:1rem">
       ${apiKeyMissing
@@ -1231,13 +1231,13 @@ function renderAdminMatches() {
 
 // ── Auto-fetch results from football-data.org ──────────
 async function fetchAllResults() {
-  if (!FOOTBALL_API_KEY) { showToast('No API key set in firebase-config.js', 'error'); return; }
+  if (typeof FOOTBALL_API_KEY === 'undefined' || !FOOTBALL_API_KEY) { showToast('No API key set in firebase-config.js', 'error'); return; }
   const btn = document.getElementById('fetch-results-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Fetching…'; }
 
   try {
     const res = await fetch('https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED', {
-      headers: { 'X-Auth-Token': FOOTBALL_API_KEY }
+      headers: { 'X-Auth-Token': (typeof FOOTBALL_API_KEY !== 'undefined' ? FOOTBALL_API_KEY : '') }
     });
     if (!res.ok) throw new Error(`API error ${res.status}: ${await res.text()}`);
     const data = await res.json();
