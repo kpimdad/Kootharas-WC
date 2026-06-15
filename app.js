@@ -974,11 +974,11 @@ function renderLeaderboardTable(users, filter, totalCompleted = 0) {
         <tr>
           <th class="lb-th-rank">#</th>
           <th class="lb-th-player">Player</th>
-          <th class="lb-th-num">🏁 Finished</th>
-          <th class="lb-th-num">📋 Played</th>
-          <th class="lb-th-num">🎯 Exact</th>
-          <th class="lb-th-num">✓ Result</th>
-          <th class="lb-th-pts">Pts</th>
+          <th class="lb-th-num">Matches Finished</th>
+          <th class="lb-th-num">Matches Played</th>
+          <th class="lb-th-num">Exact Score</th>
+          <th class="lb-th-num">Correct Result</th>
+          <th class="lb-th-pts">Points</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
