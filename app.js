@@ -909,7 +909,6 @@ function renderLeaderboardTable(users, filter) {
     const isMe   = u.id === myId;
     const rankCls = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
     const rankNum = i < 3 ? rankIcon[i] : (i + 1);
-    const fire    = '';
 
     // Rank movement
     let moveHTML = '';
@@ -923,20 +922,36 @@ function renderLeaderboardTable(users, filter) {
     const champ = u.championPick  || '–';
     const boot  = u.goldenBootPick || '–';
 
-    return `<tr class="lb-tr ${isMe ? 'lb-me' : ''} ${rankCls}" data-uid="${u.id}" data-nickname="${u.nickname}">
+    const mainRow = `<tr class="lb-tr ${isMe ? 'lb-me' : ''} ${rankCls}" data-uid="${u.id}" data-nickname="${u.nickname}">
       <td class="lb-td-rank"><div class="lb-rank-num">${rankNum}</div>${moveHTML}</td>
       <td class="lb-td-player">
         <div class="lb-player-wrap">
           ${getAvatarHTML(u, 34)}
-          <span class="lb-name-text">${u.nickname}${isMe ? ' <span class="me-tag">You</span>' : ''}${fire}</span>
+          <span class="lb-name-text">${u.nickname}</span>
         </div>
       </td>
-      <td class="lb-td-pick" title="${champ}">${champ}</td>
-      <td class="lb-td-pick lb-td-boot" title="${boot}">${boot}</td>
       <td class="lb-td-num">${exact}</td>
       <td class="lb-td-num">${winner}</td>
       <td class="lb-td-pts"><span class="lb-pts">${pts}</span></td>
     </tr>`;
+
+    // Expandable drawer — shows champion/golden boot picks
+    const compareBtn = !isMe
+      ? `<button class="lb-drawer-compare" data-uid="${u.id}" data-nickname="${u.nickname}">Compare ↗</button>`
+      : '';
+    const drawerRow = `<tr class="lb-tr-drawer" data-uid="${u.id}">
+      <td colspan="5">
+        <div class="lb-drawer">
+          <div class="lb-drawer-picks">
+            <span class="lb-drawer-pick"><span class="lb-drawer-lbl">🏆 Winner</span>${champ}</span>
+            <span class="lb-drawer-pick"><span class="lb-drawer-lbl">⚽ Top Scorer</span>${boot}</span>
+          </div>
+          ${compareBtn}
+        </div>
+      </td>
+    </tr>`;
+
+    return mainRow + drawerRow;
   }).join('');
 
   container.innerHTML = `
@@ -945,8 +960,6 @@ function renderLeaderboardTable(users, filter) {
         <tr>
           <th class="lb-th-rank">#</th>
           <th class="lb-th-player">Player</th>
-          <th class="lb-th-pick">🏆</th>
-          <th class="lb-th-pick">⚽</th>
           <th class="lb-th-num">🎯</th>
           <th class="lb-th-num">✓</th>
           <th class="lb-th-pts">Pts</th>
@@ -961,11 +974,27 @@ function renderLeaderboardTable(users, filter) {
   // Save rank snapshot for next visit (overall only)
   if (!filter) saveRankSnapshot(users);
 
-  // Row tap → compare (not yourself)
+  // Row tap → toggle expand drawer
   document.querySelectorAll('.lb-tr').forEach(row => {
     row.addEventListener('click', () => {
-      if (row.dataset.uid === myId) return;
-      openCompareModal(row.dataset.uid, row.dataset.nickname);
+      const wasOpen = row.classList.contains('expanded');
+      // Close all open drawers first
+      document.querySelectorAll('.lb-tr.expanded').forEach(r => r.classList.remove('expanded'));
+      document.querySelectorAll('.lb-tr-drawer.open').forEach(d => d.classList.remove('open'));
+      // Open this one (unless it was already open → toggle off)
+      if (!wasOpen) {
+        row.classList.add('expanded');
+        const drawer = row.nextElementSibling;
+        if (drawer?.classList.contains('lb-tr-drawer')) drawer.classList.add('open');
+      }
+    });
+  });
+
+  // Compare button inside drawer
+  document.querySelectorAll('.lb-drawer-compare').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      openCompareModal(btn.dataset.uid, btn.dataset.nickname);
     });
   });
 }
@@ -1079,7 +1108,7 @@ async function renderAdminUsers() {
       <div class="user-info" style="display:flex;align-items:center;gap:.75rem">
         ${getAvatarHTML(u, 32)}
         <div>
-          <div class="user-nickname">${u.nickname}${u.isAdmin ? ' 👑' : ''}</div>
+          <div class="user-nickname">${u.nickname}</div>
           <div class="user-meta">${u.totalPoints || 0} pts${u.championPick ? ` · 🏆 ${u.championPick}` : ''}${!u.pinHash ? ' · ⚠️ No PIN set' : ''}</div>
         </div>
       </div>
