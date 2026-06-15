@@ -1190,32 +1190,92 @@ function renderAdminMatches() {
   const container = document.getElementById('admin-match-list');
   const byDay = {};
   STATE.matches.forEach(m => { if (!byDay[m.matchDay]) byDay[m.matchDay] = []; byDay[m.matchDay].push(m); });
-  container.innerHTML = Object.entries(byDay).map(([day, matches]) => `
+
+  const apiKeyMissing = !FOOTBALL_API_KEY;
+  const fetchBtn = `
+    <div style="margin-bottom:1rem">
+      ${apiKeyMissing
+        ? `<div class="admin-notice">⚠️ Add your <code>FOOTBALL_API_KEY</code> in <code>firebase-config.js</code> to enable auto-fetch.
+           Get a free key at <a href="https://www.football-data.org/client/register" target="_blank">football-data.org</a></div>`
+        : `<button id="fetch-results-btn" class="btn btn-primary" onclick="fetchAllResults()">🔄 Fetch All Results</button>
+           <span style="font-size:0.78rem;color:var(--muted);margin-left:.75rem">Pulls finished scores from football-data.org</span>`
+      }
+    </div>`;
+
+  container.innerHTML = fetchBtn + Object.entries(byDay).map(([day, matches]) => `
     <div class="admin-card" style="margin-bottom:1rem">
       <div class="admin-card-head">${day}</div>
       <div class="admin-card-body" style="padding:0">
-        ${matches.map(m => `
+        ${matches.map(m => {
+          const hasResult = m.resultA != null && m.resultB != null;
+          return `
           <div class="match-admin-row" style="padding:.875rem 1rem">
             <div class="match-admin-teams">
               <span>${getFlag(m.teamA, m.flagA)} ${m.teamA} vs ${m.teamB} ${getFlag(m.teamB, m.flagB)}</span>
-              <span class="status-badge ${m.status}">${m.status}</span>
+              <span class="status-badge ${m.status}">${m.status}${hasResult ? ` · ${m.resultA}–${m.resultB}` : ''}</span>
             </div>
             <div class="match-admin-meta">${formatKickoff(m.kickoffUTC)} · ${m.venue}</div>
             <div class="result-entry">
-              <input class="result-input" id="res-a-${m.matchId}" type="number" min="0" max="20" placeholder="0" value="${m.resultA ?? ''}">
+              <input class="result-input" id="res-a-${m.matchId}" type="number" min="0" max="20" placeholder="–" value="${m.resultA ?? ''}">
               <span class="result-dash">–</span>
-              <input class="result-input" id="res-b-${m.matchId}" type="number" min="0" max="20" placeholder="0" value="${m.resultB ?? ''}">
-              <button class="btn btn-primary btn-sm" style="width:auto" onclick="saveMatchResult('${m.matchId}')">Save Result</button>
-              <button class="btn btn-secondary btn-sm" style="width:auto" onclick="setMatchStatus('${m.matchId}')">Set Status</button>
+              <input class="result-input" id="res-b-${m.matchId}" type="number" min="0" max="20" placeholder="–" value="${m.resultB ?? ''}">
+              <button class="btn btn-secondary btn-sm" style="width:auto;font-size:0.72rem" onclick="saveMatchResult('${m.matchId}')">
+                ${hasResult ? '✏️ Override' : 'Save'}
+              </button>
             </div>
-          </div>`).join('')}
+          </div>`;
+        }).join('')}
       </div>
     </div>`).join('');
 }
 
-async function saveMatchResult(matchId) {
-  const rA = parseInt(document.getElementById(`res-a-${matchId}`).value, 10);
-  const rB = parseInt(document.getElementById(`res-b-${matchId}`).value, 10);
+// ── Auto-fetch results from football-data.org ──────────
+async function fetchAllResults() {
+  if (!FOOTBALL_API_KEY) { showToast('No API key set in firebase-config.js', 'error'); return; }
+  const btn = document.getElementById('fetch-results-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Fetching…'; }
+
+  try {
+    const res = await fetch('https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED', {
+      headers: { 'X-Auth-Token': FOOTBALL_API_KEY }
+    });
+    if (!res.ok) throw new Error(`API error ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+
+    const finished = (data.matches || []).filter(m => m.status === 'FINISHED');
+    let updated = 0;
+
+    for (const apiM of finished) {
+      const rA = apiM.score?.fullTime?.home;
+      const rB = apiM.score?.fullTime?.away;
+      if (rA == null || rB == null) continue;
+
+      // Match to our fixtures by kickoff UTC time (±5 min tolerance)
+      const apiTime = new Date(apiM.utcDate).getTime();
+      const ourMatch = STATE.matches.find(m => Math.abs(new Date(m.kickoffUTC).getTime() - apiTime) < 5 * 60 * 1000);
+      if (!ourMatch) continue;
+
+      // Skip if already saved with same score
+      if (ourMatch.resultA === rA && ourMatch.resultB === rB && ourMatch.status === 'completed') continue;
+
+      await saveMatchResult(ourMatch.matchId, rA, rB);
+      updated++;
+    }
+
+    showToast(updated > 0 ? `✅ ${updated} result${updated > 1 ? 's' : ''} updated` : 'No new results', updated > 0 ? 'success' : 'info');
+    if (updated > 0) renderAdminMatches();
+  } catch (e) {
+    showToast('Fetch failed — ' + e.message, 'error');
+    console.error('fetchAllResults:', e);
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '🔄 Fetch All Results'; }
+}
+
+// ── Save a single match result (manual or auto) ────────
+// Pass rA/rB directly for auto-save; omit to read from DOM inputs
+async function saveMatchResult(matchId, autoRA, autoRB) {
+  const rA = autoRA !== undefined ? autoRA : parseInt(document.getElementById(`res-a-${matchId}`)?.value, 10);
+  const rB = autoRB !== undefined ? autoRB : parseInt(document.getElementById(`res-b-${matchId}`)?.value, 10);
   if (isNaN(rA) || isNaN(rB)) { showToast('Enter valid scores', 'error'); return; }
   try {
     await setDoc(doc(STATE.db, 'matches', matchId), { resultA: rA, resultB: rB, status: 'completed' }, { merge: true });
@@ -1238,23 +1298,11 @@ async function saveMatchResult(matchId) {
       if (s.exists()) uBatch.update(doc(STATE.db, 'users', uid), { totalPoints: (s.data().totalPoints || 0) + delta });
     }
     await uBatch.commit();
-    showToast(`✅ ${total} predictions scored: ${exact} exact, ${correct} correct`, 'success');
+    // Only show toast for manual saves (auto-fetch batches its own toast)
+    if (autoRA === undefined) showToast(`✅ ${total} predictions scored: ${exact} exact, ${correct} correct`, 'success');
     const m = STATE.matches.find(x => x.matchId === matchId);
     if (m) { m.resultA = rA; m.resultB = rB; m.status = 'completed'; }
   } catch (e) { showToast('Error saving result', 'error'); console.error(e); }
-}
-
-async function setMatchStatus(matchId) {
-  const statuses = ['upcoming', 'locked', 'completed'];
-  const current  = STATE.matches.find(x => x.matchId === matchId)?.status || 'upcoming';
-  const next     = statuses[(statuses.indexOf(current) + 1) % statuses.length];
-  try {
-    await setDoc(doc(STATE.db, 'matches', matchId), { status: next }, { merge: true });
-    const m = STATE.matches.find(x => x.matchId === matchId);
-    if (m) m.status = next;
-    showToast(`Status → ${next}`, 'info');
-    renderAdminMatches();
-  } catch { showToast('Error updating status', 'error'); }
 }
 
 function renderRecalcSection() {
