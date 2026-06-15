@@ -1073,11 +1073,48 @@ async function renderAdminUsers() {
         ${getAvatarHTML(u, 32)}
         <div>
           <div class="user-nickname">${u.nickname}${u.isAdmin ? ' 👑' : ''}</div>
-          <div class="user-meta">${u.mobile || ''}${u.mobile ? ' · ' : ''}${u.totalPoints || 0} pts${u.championPick ? ` · 🏆 ${u.championPick}` : ''}</div>
+          <div class="user-meta">${u.totalPoints || 0} pts${u.championPick ? ` · 🏆 ${u.championPick}` : ''}${!u.pinHash ? ' · ⚠️ No PIN set' : ''}</div>
         </div>
       </div>
-      <button class="btn-danger btn-sm" data-delete-user="${u.id}">Delete</button>
+      <div style="display:flex;gap:0.4rem;flex-wrap:wrap;justify-content:flex-end">
+        <button class="btn-sm btn-secondary" data-rename-user="${u.id}" data-nickname="${u.nickname}">✏️ Rename</button>
+        <button class="btn-sm btn-secondary" data-resetpin-user="${u.id}" data-nickname="${u.nickname}">🔑 Reset PIN</button>
+        <button class="btn-sm btn-danger"    data-delete-user="${u.id}">Delete</button>
+      </div>
     </div>`).join('');
+
+  list.querySelectorAll('[data-rename-user]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const uid      = btn.dataset.renameUser;
+      const current  = btn.dataset.nickname;
+      const raw      = prompt(`Rename "${current}" to:`, current);
+      if (!raw || raw.trim() === current) return;
+      const nickname   = raw.trim().charAt(0).toUpperCase() + raw.trim().slice(1).toLowerCase();
+      const normalised = nickname.toLowerCase().replace(/\s+/g, '');
+      // Duplicate check
+      const existing = await getDocs(collection(STATE.db, 'users'));
+      let duplicate = false;
+      existing.forEach(d => {
+        if (d.id !== uid && (d.data().nickname || '').toLowerCase().replace(/\s+/g, '') === normalised) duplicate = true;
+      });
+      if (duplicate) { showToast(`"${nickname}" already exists`, 'error'); return; }
+      await updateDoc(doc(STATE.db, 'users', uid), { nickname });
+      showToast(`Renamed to "${nickname}"`, 'success');
+      renderAdminUsers();
+    });
+  });
+
+  list.querySelectorAll('[data-resetpin-user]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const uid      = btn.dataset.resetpinUser;
+      const nickname = btn.dataset.nickname;
+      if (!confirm(`Reset PIN for ${nickname}? They'll set a new one on next login.`)) return;
+      await updateDoc(doc(STATE.db, 'users', uid), { pinHash: '' });
+      showToast(`PIN reset for ${nickname}`, 'success');
+      renderAdminUsers();
+    });
+  });
+
   list.querySelectorAll('[data-delete-user]').forEach(btn => {
     btn.addEventListener('click', async () => {
       if (!confirm('Delete this user?')) return;
