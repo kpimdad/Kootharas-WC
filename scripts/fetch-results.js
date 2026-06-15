@@ -17,10 +17,13 @@ const vm      = require('vm');
 const admin   = require('firebase-admin');
 
 // ── Load MATCHES array from static matches.js ─────────────────────────────────
+// vm context only exposes `var` declarations, not `const`, so we rewrite on the fly
 const matchesPath = path.resolve(__dirname, '..', 'matches.js');
+const matchesSrc  = fs.readFileSync(matchesPath, 'utf8')
+  .replace(/\bconst\s+MATCHES\b/, 'var MATCHES');
 const ctx = {};
 vm.createContext(ctx);
-vm.runInContext(fs.readFileSync(matchesPath, 'utf8'), ctx);
+vm.runInContext(matchesSrc, ctx);
 const MATCHES = ctx.MATCHES;
 
 // ── Firebase Admin ────────────────────────────────────────────────────────────
