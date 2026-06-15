@@ -686,13 +686,16 @@ async function savePrediction() {
   if (!m || !STATE.session) return;
   if (isLocked(m)) { showToast('Predictions are closed for this match', 'lock'); return; }
 
+  // Guard against double-submit (numpad done key + save button both firing)
+  const btn = document.getElementById('predict-save-btn');
+  if (btn.disabled) return;
+  btn.disabled = true; btn.textContent = 'Saving…';
+
   const scoreA   = parseInt(document.getElementById('score-a').dataset.val, 10);
   const scoreB   = parseInt(document.getElementById('score-b').dataset.val, 10);
   const predId   = `${STATE.session.userId}_${m.matchId}`;
   const lastMin  = isLastMinuteWindow(m);
   const existing = STATE.predictions[m.matchId];
-  const btn = document.getElementById('predict-save-btn');
-  btn.disabled = true; btn.textContent = 'Saving…';
 
   try {
     const pred = {
@@ -922,7 +925,7 @@ function renderLeaderboardTable(users, filter) {
       <td class="lb-td-rank"><div class="lb-rank-num">${rankNum}</div>${moveHTML}</td>
       <td class="lb-td-player">
         <div class="lb-player-wrap">
-          ${getAvatarHTML(u, 54)}
+          ${getAvatarHTML(u, 34)}
           <span class="lb-name-text">${u.nickname}${isMe ? ' <span class="me-tag">You</span>' : ''}${fire}</span>
         </div>
       </td>

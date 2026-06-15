@@ -1495,10 +1495,10 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
 @media (max-width: 599px) {
 
   /* ── Topbar ── */
-  .topbar { height: 52px; }
-  .topbar-brand { font-size: 1.15rem; }
-  .topbar-user { font-size: 0.88rem; }
-  .btn-logout { font-size: 0.78rem; padding: 0.35rem 0.7rem; }
+  .topbar { height: 52px; padding: 0 0.75rem; }
+  .topbar-brand { font-size: 1rem; }
+  .topbar-user { font-size: 0.82rem; max-width: 70px; }
+  .btn-logout { font-size: 0.72rem; padding: 0.3rem 0.55rem; white-space: nowrap; }
   .date-nav-wrap { top: 52px; }
   .view-header { top: 52px; }
 
@@ -1546,50 +1546,56 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
   .user-meta { font-size: 0.78rem; }
   .view-title { font-size: 1.4rem; }
 
-  /* ── Leaderboard: sticky rank+player, rest scrolls ──────
-     Table is 480px wide on a ~390px viewport.
-     rank(44) and player(130) are position:sticky on left.
-     User sees rank+player always; scrolls right for picks/pts. */
+  /* ── Leaderboard: hide boot col, everything fits ~390px ──
+     rank(40)+player(120)+champion(90)+exact(48)+result(48)+pts(52) = 398
+     rank+player sticky so name always visible on horizontal scroll  */
   .lb-td-boot, th.lb-th-pick:nth-child(4) { display: none; }
-  .lb-table { width: 480px; min-width: 480px; }
-  .lb-th-rank   { width: 44px; }
-  .lb-th-player { width: 130px; }
-  .lb-th-pick   { width: 100px; }
-  .lb-th-num    { width: 58px; }
-  .lb-th-pts    { width: 68px; }
+  .lb-table { width: 398px; min-width: 398px; }
+  .lb-th-rank   { width: 40px; }
+  .lb-th-player { width: 120px; }
+  .lb-th-pick   { width: 90px; }
+  .lb-th-num    { width: 48px; }
+  .lb-th-pts    { width: 52px; }
   /* Stick rank */
   .lb-th-rank, .lb-td-rank {
     position: sticky; left: 0; z-index: 3;
     background: var(--pitch);
   }
   .lb-th-rank { background: var(--card2); }
-  /* Stick player immediately after rank */
+  /* Stick player immediately after rank (left = rank width) */
   .lb-th-player, .lb-td-player {
-    position: sticky; left: 44px; z-index: 3;
+    position: sticky; left: 40px; z-index: 3;
     background: var(--pitch);
   }
   .lb-th-player { background: var(--card2); }
   /* Preserve row highlight colours on sticky cells */
   .lb-tr.lb-me  .lb-td-rank,
   .lb-tr.lb-me  .lb-td-player { background: rgba(240,180,41,0.07); }
-  .lb-tr.gold   .lb-td-rank,
-  .lb-tr.gold   .lb-td-player { background: var(--pitch); }
-  .lb-tr.silver .lb-td-rank,
-  .lb-tr.silver .lb-td-player { background: var(--pitch); }
-  .lb-tr.bronze .lb-td-rank,
-  .lb-tr.bronze .lb-td-player { background: var(--pitch); }
 
-  .lb-td-rank   { padding: 0.55rem 0.1rem 0.55rem 0.35rem; }
-  .lb-td-player { padding: 0.55rem 0.4rem; }
-  .lb-td-player .avatar { width: 30px !important; height: 30px !important; font-size: 0.65rem !important; line-height: 30px !important; }
-  .lb-player-wrap { gap: 0.4rem; }
-  .lb-td-pick   { padding: 0.55rem 0.4rem; font-size: 0.8rem; }
-  .lb-td-num    { font-size: 1.3rem; padding: 0.55rem 0.2rem; }
-  .lb-td-pts    { padding: 0.55rem 0.5rem 0.55rem 0.2rem; }
-  .lb-pts       { font-size: 2rem; }
-  .lb-rank-num  { font-size: 1.5rem; }
-  .lb-name-text { font-size: 0.88rem; }
-  .lb-rank-move { font-size: 0.6rem; }
+  .lb-td-rank   { padding: 0.45rem 0.1rem 0.45rem 0.3rem; }
+  .lb-td-player { padding: 0.45rem 0.35rem; }
+  .lb-player-wrap { gap: 0.3rem; }
+  .lb-td-pick   { padding: 0.45rem 0.3rem; font-size: 0.72rem; }
+  .lb-td-num    { font-size: 1.15rem; padding: 0.45rem 0.15rem; }
+  .lb-td-pts    { padding: 0.45rem 0.4rem 0.45rem 0.1rem; }
+  .lb-pts       { font-size: 1.8rem; }
+  .lb-rank-num  { font-size: 1.3rem; }
+  .lb-name-text { font-size: 0.82rem; }
+  .lb-rank-move { font-size: 0.55rem; }
+
+  /* ── Numpad — compact so full screen fits without scrolling ── */
+  .numpad-key  { font-size: 1.4rem; padding: 0.6rem 0; }
+  .score-display-num { font-size: 2.8rem; }
+  .score-display-btn { padding: 0.65rem 0.5rem; }
+  .score-display-flag { font-size: 1.6rem; }
+  .numpad      { gap: 0.35rem; margin-bottom: 0.75rem; }
+  .numpad-hint { font-size: 0.7rem; margin-bottom: 0.5rem; }
+  .predict-body { padding: 0.65rem; }
+  .predict-header { padding: 0.75rem 0.85rem; }
+  .predict-meta { font-size: 0.68rem; }
+  .predict-teams { font-size: 1.4rem; }
+  .score-display-name { font-size: 0.65rem; }
+  .score-display-row { gap: 0.35rem; margin-bottom: 0.5rem; }
 }
 
 /* ════════════════════════════════════════
