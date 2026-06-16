@@ -490,8 +490,6 @@ function selectDate(dateKey) {
   renderDeadlineBanner();
 }
 
-function renderHomeTab() { selectDate(activeDateKey); }
-
 function isToday(iso) {
   const d = new Date(iso), t = new Date();
   return d.getDate() === t.getDate() && d.getMonth() === t.getMonth() && d.getFullYear() === t.getFullYear();
@@ -592,7 +590,7 @@ function startCountdownTimers() {
       if (!m) return;
       const lockMs = getLockMs(m);
       const t = timeUntil(lockMs);
-      if (!t) { fetchMatches().then(() => renderHomeTab(activeHomeTab)); return; }
+      if (!t) { fetchMatches().then(() => selectDate(activeDateKey)); return; }
       const urgent  = !t.includes('d') && !t.includes('h');
       const lastMin = isLastMinuteWindow(m);
       el.textContent = `${lastMin ? '🔥' : '⏳'} Locks in ${t}`;
@@ -724,7 +722,7 @@ async function savePrediction() {
       ? `🔥 Last-minute pick! ${m.teamA} ${scoreA}–${scoreB} ${m.teamB}`
       : `Saved: ${m.teamA} ${scoreA}–${scoreB} ${m.teamB}`, 'success');
     showView('view-home');
-    try { renderHomeTab(activeHomeTab); } catch (re) { console.warn('renderHomeTab after save:', re); }
+    selectDate(activeDateKey);
   } catch (e) { if (!saved) showToast('Error saving — try again', 'error'); console.error(e); }
   btn.disabled = false; btn.textContent = 'Save Prediction';
 }
@@ -1528,10 +1526,10 @@ function wireEvents() {
 
   // Home tabs
   document.querySelectorAll('#view-home .tab-btn').forEach(btn =>
-    btn.addEventListener('click', () => renderHomeTab(btn.dataset.tab)));
+    btn.addEventListener('click', () => selectDate(activeDateKey)));
 
   // Predict view
-  document.getElementById('predict-back-btn').addEventListener('click', () => { showView('view-home'); renderHomeTab(activeHomeTab); });
+  document.getElementById('predict-back-btn').addEventListener('click', () => { showView('view-home'); selectDate(activeDateKey); });
   document.getElementById('predict-save-btn').addEventListener('click', savePrediction);
 
   // Score display buttons — tap to select which team to edit
