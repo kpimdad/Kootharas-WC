@@ -618,12 +618,14 @@ async function openPredictView(matchId) {
   const pred   = STATE.predictions[matchId];
   const locked = isLocked(m) || m.status === 'locked' || m.status === 'completed';
 
-  document.getElementById('predict-meta').textContent    = `${matchMetaLabel(m)} · ${formatKickoff(m.kickoffUTC)} · ${m.venue}`;
+  document.getElementById('predict-meta').textContent    = matchMetaLabel(m);
   document.getElementById('predict-flag-a').textContent  = getFlag(m.teamA, m.flagA);
   document.getElementById('predict-flag-b').textContent  = getFlag(m.teamB, m.flagB);
   document.getElementById('predict-team-a').textContent  = m.teamA;
   document.getElementById('predict-team-b').textContent  = m.teamB;
-  document.getElementById('predict-kickoff').textContent = formatKickoff(m.kickoffUTC);
+  const _ko = new Date(m.kickoffUTC);
+  const _koStr = _ko.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+  document.getElementById('predict-kickoff').textContent = `${_koStr} · ${m.venue}`;
   document.getElementById('picker-flag-a').textContent   = getFlag(m.teamA, m.flagA);
   document.getElementById('picker-name-a').textContent   = m.teamA;
   document.getElementById('picker-flag-b').textContent   = getFlag(m.teamB, m.flagB);

@@ -653,9 +653,13 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
 }
 .predict-teams .flag { font-size: 1.5rem; }
 .predict-kickoff {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   color: var(--silver);
   margin-top: 0.1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .predict-body { padding: 0.5rem 1rem; max-width: 420px; margin: 0 auto; }
