@@ -39,15 +39,22 @@ const STATE = {
 
 // ── Rank movement helpers ──────────────────────────────
 function loadPrevRanks() {
-  try { return JSON.parse(localStorage.getItem('wc2026_prevRanks')) || {}; } catch { return {}; }
+  try {
+    const data = JSON.parse(localStorage.getItem('wc2026_prevRanks')) || {};
+    const { _savedAt, ...ranks } = data;
+    return ranks;
+  } catch { return {}; }
 }
 function saveRankSnapshot(rankedUsers) {
-  // Only save once per page load — prevents overwriting before arrows are shown
-  if (sessionStorage.getItem('wc2026_rankSaved')) return;
-  const snap = {};
-  rankedUsers.forEach((u, i) => { snap[u.id] = i + 1; });
-  localStorage.setItem('wc2026_prevRanks', JSON.stringify(snap));
-  sessionStorage.setItem('wc2026_rankSaved', '1');
+  // Refresh snapshot at most once every 24 hours so arrows persist across page reloads
+  try {
+    const existing = JSON.parse(localStorage.getItem('wc2026_prevRanks') || '{}');
+    const ONE_DAY = 24 * 60 * 60 * 1000;
+    if (existing._savedAt && (Date.now() - existing._savedAt) < ONE_DAY) return;
+    const snap = { _savedAt: Date.now() };
+    rankedUsers.forEach((u, i) => { snap[u.id] = i + 1; });
+    localStorage.setItem('wc2026_prevRanks', JSON.stringify(snap));
+  } catch {}
 }
 
 // ── Session ────────────────────────────────────────────
@@ -949,7 +956,7 @@ function renderLeaderboardTable(users, filter, totalCompleted = 0) {
         <tr>
           <th class="lb-th-rank">#</th>
           <th class="lb-th-player">Player</th>
-          <th class="lb-th-compare"></th>
+          <th class="lb-th-compare">⚡</th>
           <th class="lb-th-num">Matches Finished</th>
           <th class="lb-th-num">Matches Played</th>
           <th class="lb-th-num">Exact Score</th>
