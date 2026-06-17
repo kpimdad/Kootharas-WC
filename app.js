@@ -1266,70 +1266,157 @@ async function recalcMatch() {
   await saveMatchResult(id);
 }
 
-// ── Backdate: populate selects ─────────────────────────
+// ── Backdate: Player Prediction Sheet ──────────────────
 function renderBackdateSection() {
-  const userSel  = document.getElementById('backdate-user-select');
-  const matchSel = document.getElementById('backdate-match-select');
-  if (!userSel || !matchSel) return;
+  const userSel = document.getElementById('backdate-user-select');
+  if (!userSel) return;
 
   userSel.innerHTML = '<option value="">— Select player —</option>' +
     STATE.users.map(u => `<option value="${u.id}">${u.nickname}</option>`).join('');
 
-  matchSel.innerHTML = '<option value="">— Select match —</option>' +
-    STATE.matches.map(m => {
-      const label = `${m.teamA} vs ${m.teamB} (${m.matchDay})${m.resultA != null ? ` — ${m.resultA}:${m.resultB}` : ''}`;
-      return `<option value="${m.matchId}">${label}</option>`;
-    }).join('');
+  userSel.onchange = () => {
+    if (userSel.value) loadBackdateSheet(userSel.value);
+    else document.getElementById('backdate-sheet').style.display = 'none';
+  };
 }
 
-async function saveBackdatePrediction() {
-  const userId  = document.getElementById('backdate-user-select').value;
-  const matchId = document.getElementById('backdate-match-select').value;
-  const pA      = parseInt(document.getElementById('backdate-score-a').value, 10);
-  const pB      = parseInt(document.getElementById('backdate-score-b').value, 10);
-  if (!userId || !matchId) { showToast('Select player and match', 'error'); return; }
-  if (isNaN(pA) || isNaN(pB)) { showToast('Enter valid scores', 'error'); return; }
+async function loadBackdateSheet(userId) {
+  const sheet     = document.getElementById('backdate-sheet');
+  const container = document.getElementById('backdate-table-container');
+  const title     = document.getElementById('backdate-sheet-title');
 
-  const m = STATE.matches.find(x => x.matchId === matchId);
-  if (!m) { showToast('Match not found', 'error'); return; }
+  const user = STATE.users.find(u => u.id === userId);
+  title.textContent = `${user?.nickname || 'Player'}'s Predictions`;
+  container.innerHTML = '<p style="padding:1.25rem;color:var(--muted)">Loading…</p>';
+  sheet.style.display = 'block';
 
-  const predId = `${userId}_${matchId}`;
-  const pts = m.resultA != null ? calculatePoints(pA, pB, m.resultA, m.resultB) : null;
+  // Only matches with kickoff in the past, sorted by date
+  const now = new Date();
+  const pastMatches = STATE.matches
+    .filter(m => new Date(m.kickoffUTC) < now)
+    .sort((a, b) => new Date(a.kickoffUTC) - new Date(b.kickoffUTC));
 
-  try {
-    // Read OLD points BEFORE writing — must happen first to compute delta correctly
-    const existingSnap = await getDoc(doc(STATE.db, 'predictions', predId));
-    const oldPts = existingSnap.exists() ? (existingSnap.data().pointsAwarded ?? 0) : 0;
+  // Load this user's predictions
+  const predsSnap = await getDocs(
+    query(collection(STATE.db, 'predictions'), where('userId', '==', userId))
+  );
+  const predsMap = {};
+  predsSnap.forEach(d => { predsMap[d.data().matchId] = d.data(); });
 
-    const pred = {
-      userId, matchId, predictedA: pA, predictedB: pB,
-      updatedAt: serverTimestamp(),
-      ...(existingSnap.exists() ? {} : { submittedAt: serverTimestamp() }),
-      lastMinute: false, backdated: true,
-      ...(pts !== null ? { pointsAwarded: pts } : {}),
-    };
-    await setDoc(doc(STATE.db, 'predictions', predId), pred, { merge: true });
+  container.innerHTML = renderBackdateTable(pastMatches, predsMap);
+}
 
-    // Update user total using pre-write delta
-    if (pts !== null) {
-      const delta = pts - oldPts;
-      if (delta !== 0) {
-        const uSnap = await getDoc(doc(STATE.db, 'users', userId));
-        if (uSnap.exists()) {
-          await updateDoc(doc(STATE.db, 'users', userId), {
-            totalPoints: (uSnap.data().totalPoints || 0) + delta,
-          });
+function renderBackdateTable(matches, predsMap) {
+  if (!matches.length) {
+    return '<p style="padding:1.25rem;color:var(--muted)">No completed matches yet.</p>';
+  }
+
+  const rows = matches.map(m => {
+    const pred      = predsMap[m.matchId];
+    const hasPred   = pred != null;
+    const pA        = hasPred ? pred.predictedA : '';
+    const pB        = hasPred ? pred.predictedB : '';
+    const hasResult = m.resultA != null;
+    const date      = new Date(m.kickoffUTC).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const resultStr = hasResult ? `${m.resultA}–${m.resultB}` : '–';
+    const rowCls    = hasPred ? '' : ' bd-row-missing';
+    const stCls     = hasPred ? 'bd-status-saved' : 'bd-status-missing';
+    const stLabel   = hasPred ? '✓' : '!';
+
+    return `<div class="bd-row${rowCls}" data-match-id="${m.matchId}">
+      <div class="bd-date">${date}</div>
+      <div class="bd-match">${getFlag(m.teamA, m.flagA)} ${m.teamA} <span class="bd-vs">vs</span> ${m.teamB} ${getFlag(m.teamB, m.flagB)}</div>
+      <div class="bd-inputs">
+        <input class="bd-score-input" type="number" min="0" max="20" value="${pA}" data-match-id="${m.matchId}" data-field="a" placeholder="–">
+        <span class="bd-dash">–</span>
+        <input class="bd-score-input" type="number" min="0" max="20" value="${pB}" data-match-id="${m.matchId}" data-field="b" placeholder="–">
+      </div>
+      <div class="bd-result">${resultStr}</div>
+      <div class="bd-status ${stCls}" id="bd-status-${m.matchId}">${stLabel}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="bd-header">
+      <div class="bd-date">Date</div>
+      <div class="bd-match">Match</div>
+      <div class="bd-inputs">Prediction</div>
+      <div class="bd-result">Result</div>
+      <div class="bd-status"></div>
+    </div>${rows}`;
+}
+
+async function saveAllBackdatePredictions() {
+  const userId = document.getElementById('backdate-user-select').value;
+  if (!userId) return;
+
+  // Collect all rows that have both scores filled
+  const rowData = {};
+  document.querySelectorAll('.bd-score-input').forEach(inp => {
+    const matchId = inp.dataset.matchId;
+    const field   = inp.dataset.field;
+    const val     = inp.value.trim();
+    if (!rowData[matchId]) rowData[matchId] = {};
+    if (val !== '') rowData[matchId][field] = parseInt(val, 10);
+  });
+
+  const toSave = Object.entries(rowData).filter(([, v]) => v.a !== undefined && v.b !== undefined);
+  if (!toSave.length) { showToast('No predictions to save', 'info'); return; }
+
+  const btn = document.getElementById('backdate-save-all-btn');
+  btn.disabled = true;
+  btn.textContent = `Saving ${toSave.length}…`;
+
+  let saved = 0, errors = 0;
+
+  for (const [matchId, scores] of toSave) {
+    try {
+      const m   = STATE.matches.find(x => x.matchId === matchId);
+      if (!m) continue;
+      const predId = `${userId}_${matchId}`;
+      const pA = scores.a, pB = scores.b;
+      const pts = m.resultA != null ? calculatePoints(pA, pB, m.resultA, m.resultB) : null;
+
+      const existingSnap = await getDoc(doc(STATE.db, 'predictions', predId));
+      const oldPts = existingSnap.exists() ? (existingSnap.data().pointsAwarded ?? 0) : 0;
+
+      await setDoc(doc(STATE.db, 'predictions', predId), {
+        userId, matchId, predictedA: pA, predictedB: pB,
+        updatedAt: serverTimestamp(),
+        ...(existingSnap.exists() ? {} : { submittedAt: serverTimestamp() }),
+        lastMinute: false, backdated: true,
+        ...(pts !== null ? { pointsAwarded: pts } : {}),
+      }, { merge: true });
+
+      if (pts !== null) {
+        const delta = pts - oldPts;
+        if (delta !== 0) {
+          const uSnap = await getDoc(doc(STATE.db, 'users', userId));
+          if (uSnap.exists()) {
+            await updateDoc(doc(STATE.db, 'users', userId), {
+              totalPoints: (uSnap.data().totalPoints || 0) + delta,
+            });
+          }
         }
       }
-      showToast(`✅ Saved — ${pts} pts awarded`, 'success');
-    } else {
-      showToast('✅ Prediction saved (match not completed yet)', 'success');
-    }
 
-    // Clear form
-    document.getElementById('backdate-score-a').value = '';
-    document.getElementById('backdate-score-b').value = '';
-  } catch (e) { showToast('Error: ' + e.message, 'error'); console.error(e); }
+      // Update row status to saved
+      const statusEl = document.getElementById(`bd-status-${matchId}`);
+      if (statusEl) {
+        statusEl.textContent = '✓';
+        statusEl.className   = 'bd-status bd-status-saved';
+        const row = statusEl.closest('.bd-row');
+        row?.classList.remove('bd-row-missing', 'bd-row-dirty');
+      }
+      saved++;
+    } catch (e) {
+      console.error('Error saving', matchId, e);
+      errors++;
+    }
+  }
+
+  btn.disabled    = false;
+  btn.textContent = 'Save All Changes';
+  showToast(`✅ Saved ${saved} prediction${saved !== 1 ? 's' : ''}${errors ? ` · ${errors} error(s)` : ''}`, 'success');
 }
 
 async function recalcAll() {
@@ -1441,8 +1528,22 @@ function wireEvents() {
     document.getElementById('admin-login-modal').style.display = 'none';
   });
 
-  // Backdate
-  document.getElementById('backdate-save-btn')?.addEventListener('click', saveBackdatePrediction);
+  // Backdate sheet
+  document.addEventListener('click', e => {
+    if (e.target.id === 'backdate-save-all-btn') saveAllBackdatePredictions();
+  });
+  document.addEventListener('input', e => {
+    if (!e.target.classList.contains('bd-score-input')) return;
+    const matchId  = e.target.dataset.matchId;
+    const statusEl = document.getElementById(`bd-status-${matchId}`);
+    if (statusEl) {
+      statusEl.textContent = '✏';
+      statusEl.className   = 'bd-status bd-status-dirty';
+    }
+    const row = e.target.closest('.bd-row');
+    row?.classList.add('bd-row-dirty');
+    row?.classList.remove('bd-row-missing');
+  });
 
   // Login
   document.getElementById('login-btn').addEventListener('click', handleLogin);
