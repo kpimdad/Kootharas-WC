@@ -1517,6 +1517,97 @@ async function rescoreAllMatches() {
   } catch (e) { showToast('Error: ' + e.message, 'error'); console.error(e); }
 }
 
+// ── Prediction Integrity Audit ─────────────────────────
+// Checks for predictions where updatedAt > lock time (kickoff − 5 min)
+// and backdated !== true. These were not saved through the admin tool.
+async function runIntegrityAudit() {
+  const resultsEl = document.getElementById('audit-results');
+  resultsEl.innerHTML = '<p style="color:var(--silver);font-size:0.875rem">Running audit…</p>';
+
+  try {
+    const [uSnap, pSnap] = await Promise.all([
+      getDocs(collection(STATE.db, 'users')),
+      getDocs(collection(STATE.db, 'predictions')),
+    ]);
+
+    // Build userId → nickname map
+    const nickMap = {};
+    uSnap.forEach(d => { nickMap[d.id] = d.data().nickname || d.id; });
+
+    // Build matchId → lockMs map
+    const lockMap = {};
+    STATE.matches.forEach(m => { lockMap[m.matchId] = new Date(m.kickoffUTC).getTime() - 5 * 60 * 1000; });
+
+    const suspicious = [];
+    pSnap.forEach(d => {
+      const p = d.data();
+      if (p.backdated === true) return;                          // admin backdate tool — legit
+      if (!p.updatedAt) return;                                  // no timestamp to check
+      const lockMs = lockMap[p.matchId];
+      if (!lockMs) return;                                       // unknown match
+      const updMs = p.updatedAt.toMillis ? p.updatedAt.toMillis() : p.updatedAt.seconds * 1000;
+      if (updMs > lockMs) {
+        suspicious.push({
+          docId: d.id,
+          user: nickMap[p.userId] || p.userId,
+          matchId: p.matchId,
+          score: `${p.predictedA}–${p.predictedB}`,
+          pts: p.pointsAwarded ?? '?',
+          updatedAt: new Date(updMs).toISOString().replace('T', ' ').slice(0, 19) + ' UTC',
+          lockTime: new Date(lockMs).toISOString().replace('T', ' ').slice(0, 19) + ' UTC',
+          minsAfterLock: Math.round((updMs - lockMs) / 60000),
+        });
+      }
+    });
+
+    if (suspicious.length === 0) {
+      resultsEl.innerHTML = '<p style="color:#2ecc71;font-size:0.9rem">✅ No suspicious predictions found. All clear.</p>';
+      return;
+    }
+
+    // Group by user
+    const byUser = {};
+    suspicious.forEach(s => {
+      if (!byUser[s.user]) byUser[s.user] = [];
+      byUser[s.user].push(s);
+    });
+
+    let html = `<p style="color:#e67e22;font-size:0.875rem;margin-bottom:1rem">⚠️ Found <strong>${suspicious.length}</strong> suspicious prediction(s) across <strong>${Object.keys(byUser).length}</strong> user(s).</p>`;
+
+    Object.entries(byUser).sort((a, b) => b[1].length - a[1].length).forEach(([user, rows]) => {
+      const totalSuspectPts = rows.reduce((sum, r) => sum + (typeof r.pts === 'number' ? r.pts : 0), 0);
+      html += `<div style="margin-bottom:1.25rem">
+        <div style="font-weight:700;color:var(--gold);font-size:0.9rem;margin-bottom:0.5rem">
+          ${user} — ${rows.length} suspicious (${totalSuspectPts} pts)
+        </div>
+        <table style="width:100%;font-size:0.78rem;border-collapse:collapse">
+          <thead><tr style="color:var(--muted);text-align:left">
+            <th style="padding:0.3rem 0.5rem">Match</th>
+            <th style="padding:0.3rem 0.5rem">Score</th>
+            <th style="padding:0.3rem 0.5rem">Pts</th>
+            <th style="padding:0.3rem 0.5rem">Updated At</th>
+            <th style="padding:0.3rem 0.5rem">+min after lock</th>
+          </tr></thead>
+          <tbody>`;
+      rows.forEach(r => {
+        html += `<tr style="border-top:1px solid var(--border)">
+          <td style="padding:0.3rem 0.5rem;color:var(--silver)">${r.matchId}</td>
+          <td style="padding:0.3rem 0.5rem;color:var(--silver)">${r.score}</td>
+          <td style="padding:0.3rem 0.5rem;color:${r.pts > 0 ? '#2ecc71' : 'var(--muted)'}">${r.pts}</td>
+          <td style="padding:0.3rem 0.5rem;color:var(--silver)">${r.updatedAt}</td>
+          <td style="padding:0.3rem 0.5rem;color:#e74c3c">+${r.minsAfterLock}m</td>
+        </tr>`;
+      });
+      html += `</tbody></table></div>`;
+    });
+
+    resultsEl.innerHTML = html;
+  } catch (e) {
+    resultsEl.innerHTML = `<p style="color:#e74c3c;font-size:0.875rem">Error: ${e.message}</p>`;
+    console.error(e);
+  }
+}
+
 // ═══════════════════════════════════════════════════════
 // APP INIT
 // ═══════════════════════════════════════════════════════
@@ -1673,6 +1764,7 @@ function wireEvents() {
   document.getElementById('recalc-match-btn').addEventListener('click', recalcMatch);
   document.getElementById('recalc-all-btn').addEventListener('click', recalcAll);
   document.getElementById('rescore-all-btn').addEventListener('click', rescoreAllMatches);
+  document.getElementById('run-audit-btn').addEventListener('click', runIntegrityAudit);
 
   // Champion modal
   const closeModal = () => { document.getElementById('champion-modal').style.display = 'none'; };

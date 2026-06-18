@@ -337,6 +337,7 @@
     <button class="tab-btn" data-tab="matches">Matches</button>
     <button class="tab-btn" data-tab="backdate">Backdate</button>
     <button class="tab-btn" data-tab="recalc">Recalculate</button>
+    <button class="tab-btn" data-tab="audit">🔍 Audit</button>
   </div>
 
   <!-- Tab: Manage Users -->
@@ -390,6 +391,20 @@
         <div class="admin-card-body" style="padding:0">
           <div id="backdate-table-container"></div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Audit (admin-only, not visible to users) -->
+  <div class="admin-section" data-tab="audit" style="display:none">
+    <div class="admin-card">
+      <div class="admin-card-head">🔍 Prediction Integrity Audit</div>
+      <div class="admin-card-body">
+        <p style="font-size:0.875rem;color:var(--silver);margin-bottom:1rem">
+          Flags predictions with <code>updatedAt</code> after the match lock time (kickoff − 5 min) that were <strong>not</strong> saved via the admin Backdate tool. These may indicate direct Firestore edits.
+        </p>
+        <button id="run-audit-btn" class="btn btn-secondary" style="width:auto;border-color:#e67e22;color:#e67e22">Run Audit</button>
+        <div id="audit-results" style="margin-top:1.25rem"></div>
       </div>
     </div>
   </div>
@@ -535,7 +550,7 @@
 <script>
   function loadApp() {
     const s = document.createElement('script');
-    s.src = 'app.js?v=9';
+    s.src = 'app.js?v=10';
     document.body.appendChild(s);
   }
   if (window.firebaseReady) {
