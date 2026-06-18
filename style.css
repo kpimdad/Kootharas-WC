@@ -1720,22 +1720,22 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
   .user-meta { font-size: 0.78rem; }
   .view-title { font-size: 1.4rem; }
 
-  /* ── Leaderboard: 7 columns on mobile ── */
-  .lb-table { width: 100%; min-width: unset; }
-  .lb-th-rank    { width: 34px; }
-  .lb-th-compare { width: 40px; padding: 0.6rem 0.2rem; }
-  .lb-th-num     { width: 64px; font-size: 0.62rem; padding: 0.6rem 0.2rem; }
-  .lb-th-pts     { width: 44px; font-size: 0.62rem; padding: 0.6rem 0.2rem; }
-  .lb-td-rank   { padding: 0.5rem 0.1rem 0.5rem 0.25rem; }
-  .lb-td-player { padding: 0.5rem 0.25rem; }
-  .lb-player-wrap { gap: 0.25rem; }
-  .lb-td-num    { font-size: 0.95rem; padding: 0.5rem 0.15rem; }
+  /* ── Leaderboard: 8 columns on mobile — fit without horizontal scroll ── */
+  .lb-table { width: 100%; min-width: unset; table-layout: fixed; }
+  .lb-th-rank    { width: 28px; }
+  .lb-th-player  { width: auto; }
+  .lb-th-compare { width: 32px; padding: 0.6rem 0.1rem; }
+  .lb-th-num     { width: 36px; font-size: 0.7rem; padding: 0.6rem 0.1rem; }
+  .lb-th-pts     { width: 38px; font-size: 0.7rem; padding: 0.6rem 0.1rem; }
+  .lb-td-rank   { padding: 0.5rem 0.1rem 0.5rem 0.2rem; }
+  .lb-td-player { padding: 0.5rem 0.2rem; }
+  .lb-player-wrap { gap: 0.2rem; }
+  .lb-td-num    { font-size: 0.9rem; padding: 0.5rem 0.1rem; }
   .lb-td-total  { font-size: 0.85rem; }
-  .lb-td-pts    { padding: 0.5rem 0.2rem; }
-  .lb-pts       { font-size: 1.5rem; }
-  .lb-rank-num  { font-size: 1.2rem; }
-  .lb-name-text { font-size: 0.8rem; }
-  .lb-rank-move { font-size: 0.5rem; }
+  .lb-td-pts    { padding: 0.5rem 0.1rem; }
+  .lb-pts       { font-size: 1.4rem; }
+  .lb-rank-num  { font-size: 1.1rem; }
+  .lb-name-text { font-size: 0.78rem; }
   .lb-rank-move { font-size: 0.55rem; }
   .lb-drawer { padding: 0.65rem 0.75rem; gap: 0.6rem; }
   .lb-drawer-pick { font-size: 0.9rem; }
