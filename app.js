@@ -1536,16 +1536,29 @@ async function shareStandings() {
     document.getElementById('sc-date').textContent =
       new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
 
-    rowsEl.innerHTML = rankedUsers.map((u, i) => {
+    // Column headers
+    rowsEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;padding:4px 10px;margin-bottom:2px">
+      <span style="width:28px"></span>
+      <span style="flex:1"></span>
+      <span style="width:32px;text-align:center;font-size:0.65rem;color:#556;font-family:sans-serif">🎯</span>
+      <span style="width:32px;text-align:center;font-size:0.65rem;color:#556;font-family:sans-serif">✅</span>
+      <span style="width:52px;text-align:right;font-size:0.65rem;color:#556;font-family:sans-serif">PTS</span>
+    </div>` + rankedUsers.map((u, i) => {
       const rank   = i + 1;
       const medal  = medals[i] || `${rank}.`;
-      const pts    = u.totalPoints || 0;
+      const pts    = u.totalPoints    || 0;
+      const exact  = u.computedExact  || 0;
+      const winner = u.computedWinner || 0;
       const isMe   = u.id === STATE.session?.userId;
       const bg     = isMe ? 'rgba(240,180,41,0.12)' : (i % 2 === 0 ? 'rgba(255,255,255,0.04)' : 'transparent');
+      const nameColor = isMe ? '#F0B429' : '#ccd6f6';
+      const ptsColor  = isMe ? '#F0B429' : '#ffffff';
       return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:${bg}">
-        <span style="font-size:1.1rem;width:28px;text-align:center">${medal}</span>
-        <span style="flex:1;font-size:1rem;color:${isMe ? '#F0B429' : '#ccd6f6'};font-family:'Bebas Neue',sans-serif;letter-spacing:0.04em">${u.nickname}${isMe ? ' ★' : ''}</span>
-        <span style="font-size:1.1rem;color:${isMe ? '#F0B429' : '#fff'};font-family:'Bebas Neue',sans-serif">${pts} <span style="font-size:0.7rem;color:#8899aa;font-family:sans-serif">pts</span></span>
+        <span style="font-size:1rem;width:28px;text-align:center">${medal}</span>
+        <span style="flex:1;font-size:0.95rem;color:${nameColor};font-family:'Bebas Neue',sans-serif;letter-spacing:0.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.nickname}${isMe ? ' ★' : ''}</span>
+        <span style="width:32px;text-align:center;font-size:0.9rem;color:#f1c40f;font-family:'Bebas Neue',sans-serif">${exact}</span>
+        <span style="width:32px;text-align:center;font-size:0.9rem;color:#2ecc71;font-family:'Bebas Neue',sans-serif">${winner}</span>
+        <span style="width:52px;text-align:right;font-size:1.05rem;color:${ptsColor};font-family:'Bebas Neue',sans-serif">${pts}<span style="font-size:0.6rem;color:#8899aa;font-family:sans-serif"> pts</span></span>
       </div>`;
     }).join('');
 
