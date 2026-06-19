@@ -1519,7 +1519,7 @@ async function rescoreAllMatches() {
   } catch (e) { showToast('Error: ' + e.message, 'error'); console.error(e); }
 }
 
-// ── Share Standings Card (pure Canvas 2D — no html2canvas) ────────────────
+// ── Share Standings Card (pure Canvas 2D, 2× HD) ───────
 async function shareStandings() {
   const btn = document.getElementById('share-standings-btn');
   btn.textContent = '⏳';
@@ -1530,131 +1530,169 @@ async function shareStandings() {
       .filter(u => !u.isAdminAccount)
       .sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
 
-    const medals = ['🥇','🥈','🥉'];
-    const PAD    = 28;   // horizontal padding
-    const W      = 760;  // canvas width (2× for retina)
-    const ROW_H  = 52;
-    const HEADER = 200;  // space for title block
-    const FOOTER = 48;
-    const H      = HEADER + rankedUsers.length * ROW_H + 24 + FOOTER;
+    // ── Layout (logical pixels — canvas is 2× for HD) ──
+    const DPR    = 2;
+    const W      = 800;
+    const PAD    = 36;
+    const ROW_H  = 56;
+    const HDR_H  = 210;       // taller header to give breathing room above rows
+    const FOOT_H = 52;
+    const H      = HDR_H + rankedUsers.length * ROW_H + FOOT_H;
 
-    const canvas = document.createElement('canvas');
-    canvas.width  = W;
-    canvas.height = H;
-    const ctx = canvas.getContext('2d');
+    // Column X — spread wide so headers don't crowd each other
+    const xRank  = PAD + 20;
+    const xName  = PAD + 56;
+    const xExact = W - 270;   // 🎯 center
+    const xRes   = W - 170;   // ✅ center  (100px gap from exact)
+    const xPts   = W - PAD;   // Points right-edge (134px gap from result)
 
-    // ── 1. Draw background image (object-fit: contain, centered) ──
+    const canvas  = document.createElement('canvas');
+    canvas.width  = W * DPR;
+    canvas.height = H * DPR;
+    const ctx     = canvas.getContext('2d');
+    ctx.scale(DPR, DPR);
+
+    // ── 1. Background image (26.jpg) full-cover + dark gradient overlay ──
     const img = await new Promise((res, rej) => {
       const i = new Image();
       i.onload = () => res(i);
       i.onerror = rej;
       i.src = '26.jpg';
     });
-    // Scale to cover full canvas, center-crop
-    const scale = Math.max(W / img.naturalWidth, H / img.naturalHeight);
-    const iw = img.naturalWidth  * scale;
-    const ih = img.naturalHeight * scale;
-    const ix = (W - iw) / 2;
-    const iy = (H - ih) / 2;
-    ctx.drawImage(img, ix, iy, iw, ih);
+    const sc = Math.max(W / img.naturalWidth, H / img.naturalHeight);
+    ctx.drawImage(img,
+      (W - img.naturalWidth  * sc) / 2,
+      (H - img.naturalHeight * sc) / 2,
+      img.naturalWidth  * sc,
+      img.naturalHeight * sc
+    );
 
-    // ── 2. Dark overlay ──
-    ctx.fillStyle = 'rgba(8,12,18,0.72)';
+    // Gradient overlay: stronger at top/bottom, slightly lighter in middle so trophy shows
+    const overlay = ctx.createLinearGradient(0, 0, 0, H);
+    overlay.addColorStop(0,    'rgba(8,12,20,0.88)');
+    overlay.addColorStop(0.35, 'rgba(8,12,20,0.70)');
+    overlay.addColorStop(0.65, 'rgba(8,12,20,0.70)');
+    overlay.addColorStop(1,    'rgba(8,12,20,0.92)');
+    ctx.fillStyle = overlay;
     ctx.fillRect(0, 0, W, H);
 
-    // ── 3. Title block (centered) ──
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#F0B429';
-    ctx.font      = 'bold 52px "Bebas Neue", sans-serif';
-    ctx.fillText('🏆  KOOTHARAS WC 2026', W / 2, 90);
+    // ── 2. Gold accent bars top + bottom ──
+    const goldBar = ctx.createLinearGradient(0, 0, W, 0);
+    goldBar.addColorStop(0,   'rgba(240,180,41,0)');
+    goldBar.addColorStop(0.25,'rgba(240,180,41,0.75)');
+    goldBar.addColorStop(0.75,'rgba(240,180,41,0.75)');
+    goldBar.addColorStop(1,   'rgba(240,180,41,0)');
+    ctx.fillStyle = goldBar;
+    ctx.fillRect(0, 0, W, 3);
+    ctx.fillRect(0, H - 3, W, 3);
 
-    ctx.fillStyle = '#aabbcc';
-    ctx.font      = '26px sans-serif';
-    ctx.fillText(new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }), W / 2, 126);
+    // ── 3. Header ──
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+
+    ctx.font      = '44px sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('🏆', W / 2, 50);
+
+    ctx.font         = 'bold 60px "Bebas Neue", Arial Narrow, sans-serif';
+    ctx.fillStyle    = '#F0B429';
+    ctx.shadowColor  = 'rgba(240,180,41,0.45)';
+    ctx.shadowBlur   = 20;
+    ctx.fillText('KOOTHARAS WC 2026', W / 2, 112);
+    ctx.shadowBlur   = 0;
+    ctx.shadowColor  = 'transparent';
+
+    ctx.font      = '22px sans-serif';
+    ctx.fillStyle = '#7a8fa8';
+    ctx.fillText(new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }), W / 2, 154);
 
     // Divider
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    const divGrad = ctx.createLinearGradient(0, 0, W, 0);
+    divGrad.addColorStop(0,   'rgba(240,180,41,0)');
+    divGrad.addColorStop(0.2, 'rgba(240,180,41,0.5)');
+    divGrad.addColorStop(0.8, 'rgba(240,180,41,0.5)');
+    divGrad.addColorStop(1,   'rgba(240,180,41,0)');
+    ctx.strokeStyle = divGrad;
     ctx.lineWidth   = 1;
     ctx.beginPath();
-    ctx.moveTo(PAD, 150); ctx.lineTo(W - PAD, 150);
+    ctx.moveTo(PAD, 178); ctx.lineTo(W - PAD, 178);
     ctx.stroke();
 
-    // ── 4. Column headers ──
-    const COL = { medal: 28, name: 70, exact: W - 240, result: W - 170, pts: W - PAD };
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#667788';
-    ctx.font      = '22px sans-serif';
-    ctx.fillText('🎯', COL.exact - 14,  178);
-    ctx.fillText('✅', COL.result - 14, 178);
+    // ── 4. Column headers (on their own band, well above rows) ──
+    const colHdrY = 196;       // sits between divider (178) and first row (210)
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font         = '20px sans-serif';
+    ctx.fillStyle    = '#5a7080';
+    ctx.fillText('🎯', xExact, colHdrY);
+    ctx.fillText('✅', xRes,   colHdrY);
     ctx.textAlign = 'right';
-    ctx.fillText('POINTS', COL.pts, 178);
+    ctx.font      = 'bold 17px sans-serif';
+    ctx.fillText('POINTS', xPts, colHdrY);
 
     // ── 5. Player rows ──
     rankedUsers.forEach((u, i) => {
-      const y    = HEADER + i * ROW_H;
-      const isMe = u.id === STATE.session?.userId;
+      const rowY = HDR_H + i * ROW_H;
+      const midY = rowY + ROW_H / 2;
 
-      // Row background
-      if (isMe) {
-        ctx.fillStyle = 'rgba(240,180,41,0.15)';
+      // Alternating row bg — no isMe highlight (card is shared publicly)
+      if (i % 2 === 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.05)';
         ctx.beginPath();
-        ctx.roundRect(PAD - 8, y + 4, W - (PAD - 8) * 2, ROW_H - 6, 8);
-        ctx.fill();
-      } else if (i % 2 === 0) {
-        ctx.fillStyle = 'rgba(255,255,255,0.04)';
-        ctx.beginPath();
-        ctx.roundRect(PAD - 8, y + 4, W - (PAD - 8) * 2, ROW_H - 6, 8);
+        ctx.roundRect(PAD - 12, rowY + 3, W - (PAD - 12) * 2, ROW_H - 5, 8);
         ctx.fill();
       }
 
-      const cy = y + ROW_H - 14; // text baseline
+      // Rank
+      ctx.textAlign    = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font         = 'bold 24px "Bebas Neue", sans-serif';
+      ctx.fillStyle    = i < 3 ? ['#FFD700','#C0C0C0','#CD7F32'][i] : '#3a5060';
+      ctx.fillText(`${i + 1}`, xRank, midY);
 
-      // Medal / rank
-      ctx.textAlign = 'left';
-      ctx.font      = '28px sans-serif';
-      ctx.fillText(medals[i] || `${i + 1}.`, PAD, cy);
+      // Name — same colour for everyone
+      ctx.textAlign    = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.font         = 'bold 32px "Bebas Neue", Arial Narrow, sans-serif';
+      ctx.fillStyle    = '#d8e8f5';
+      const maxLen     = 13;
+      const name       = u.nickname.length > maxLen ? u.nickname.slice(0, maxLen) + '…' : u.nickname;
+      ctx.fillText(name, xName, midY);
 
-      // Name
-      ctx.font      = `bold 32px "Bebas Neue", sans-serif`;
-      ctx.fillStyle = isMe ? '#F0B429' : '#ccd6f6';
-      const name    = (u.nickname + (isMe ? ' ★' : '')).slice(0, 18);
-      ctx.fillText(name, COL.name, cy);
+      // Exact score 🎯
+      ctx.textAlign    = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font         = 'bold 30px "Bebas Neue", sans-serif';
+      ctx.fillStyle    = '#E8B800';
+      ctx.fillText(u.computedExact  || 0, xExact, midY);
 
-      // Exact
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#f1c40f';
-      ctx.font      = 'bold 30px "Bebas Neue", sans-serif';
-      ctx.fillText(u.computedExact || 0, COL.exact, cy);
-
-      // Result
-      ctx.fillStyle = '#2ecc71';
-      ctx.fillText(u.computedWinner || 0, COL.result, cy);
+      // Correct result ✅
+      ctx.fillStyle = '#27ae60';
+      ctx.fillText(u.computedWinner || 0, xRes, midY);
 
       // Points
       ctx.textAlign = 'right';
-      ctx.fillStyle = isMe ? '#F0B429' : '#ffffff';
-      ctx.font      = 'bold 32px "Bebas Neue", sans-serif';
-      ctx.fillText(u.totalPoints || 0, COL.pts - 70, cy);
-      ctx.fillStyle = '#8899aa';
-      ctx.font      = '22px sans-serif';
-      ctx.fillText('pts', COL.pts, cy);
+      ctx.fillStyle = '#f0f4f8';
+      ctx.font      = 'bold 34px "Bebas Neue", sans-serif';
+      ctx.fillText(u.totalPoints || 0, xPts, midY);
     });
 
-    // ── 6. Footer ──
-    const fy = H - 16;
-    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    // ── 7. Footer ──
+    const footY = H - FOOT_H / 2;
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
     ctx.lineWidth   = 1;
     ctx.beginPath();
-    ctx.moveTo(PAD, fy - 24); ctx.lineTo(W - PAD, fy - 24);
+    ctx.moveTo(PAD, footY - 16); ctx.lineTo(W - PAD, footY - 16);
     ctx.stroke();
-    ctx.textAlign  = 'center';
-    ctx.fillStyle  = '#445566';
-    ctx.font       = '20px sans-serif';
-    ctx.fillText('kpimdad.github.io/Kootharas-WC', W / 2, fy);
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font         = '19px sans-serif';
+    ctx.fillStyle    = '#2a3a4a';
+    ctx.fillText('kpimdad.github.io/Kootharas-WC', W / 2, footY + 4);
 
-    // ── 7. Share or download ──
+    // ── 9. Share / download ──
     canvas.toBlob(async blob => {
-      const file = new File([blob], 'kootharas-wc-standings.png', { type: 'image/png' });
+      const file = new File([blob], 'kootharas-standings.png', { type: 'image/png' });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: 'Kootharas WC 2026 Standings' });
       } else {
