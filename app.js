@@ -1707,7 +1707,7 @@ async function shareStandings() {
     console.error('Share failed:', e);
     showToast('Could not generate share image', 'error');
   } finally {
-    btn.textContent = '📤';
+    btn.textContent = '📸';
     btn.disabled    = false;
   }
 }
