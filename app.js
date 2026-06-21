@@ -1296,7 +1296,7 @@ function renderAdminMatches(tab) {
 
   const upcoming  = STATE.matches
     .filter(m => m.resultA == null || m.resultB == null)
-    .sort((a, b) => new Date(b.kickoffUTC) - new Date(a.kickoffUTC));   // latest first
+    .sort((a, b) => new Date(a.kickoffUTC) - new Date(b.kickoffUTC));   // soonest first
   const completed = STATE.matches
     .filter(m => m.resultA != null && m.resultB != null)
     .sort((a, b) => new Date(b.kickoffUTC) - new Date(a.kickoffUTC));   // latest first
