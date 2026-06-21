@@ -718,6 +718,23 @@ async function savePrediction() {
     await setDoc(doc(STATE.db, 'predictions', predId), pred, { merge: true });
     saved = true; // ← primary write succeeded; never show error toast after this point
 
+    // ── Audit trail: record previous score whenever a prediction is changed ──
+    if (existing &&
+        (existing.predictedA !== scoreA || existing.predictedB !== scoreB)) {
+      const auditRef = doc(STATE.db, 'predictionAudit',
+        `${predId}_${Date.now()}`);
+      setDoc(auditRef, {
+        userId:    STATE.session.userId,
+        matchId:   m.matchId,
+        prevA:     existing.predictedA,
+        prevB:     existing.predictedB,
+        newA:      scoreA,
+        newB:      scoreB,
+        changedAt: serverTimestamp(),
+        lastMinute: lastMin,
+      }).catch(e => console.warn('audit trail:', e)); // fire-and-forget
+    }
+
     // Track last-minute count — fire-and-forget, never blocks UI
     if (lastMin && !existing?.lastMinute) {
       const uRef = doc(STATE.db, 'users', STATE.session.userId);
@@ -1868,6 +1885,69 @@ async function runIntegrityAudit() {
   } catch (e) {
     resultsEl.innerHTML = `<p style="color:#e74c3c;font-size:0.875rem">Error: ${e.message}</p>`;
     console.error(e);
+  }
+
+  // ── Edit History (predictionAudit collection) ──────────
+  try {
+    const auditSnap = await getDocs(collection(STATE.db, 'predictionAudit'));
+    if (auditSnap.empty) {
+      resultsEl.innerHTML += `<p style="color:var(--muted);font-size:0.85rem;margin-top:1.5rem">📋 Edit history: none yet — changes from now on will appear here.</p>`;
+      return;
+    }
+
+    const nickMap2 = {};
+    const uSnap2 = await getDocs(collection(STATE.db, 'users'));
+    uSnap2.forEach(d => { nickMap2[d.id] = d.data().nickname || d.id; });
+
+    const edits = [];
+    auditSnap.forEach(d => {
+      const a = d.data();
+      const m = STATE.matches.find(x => x.matchId === a.matchId);
+      const changedMs = a.changedAt?.toMillis ? a.changedAt.toMillis() : (a.changedAt?.seconds || 0) * 1000;
+      const lockMs    = m ? new Date(m.kickoffUTC).getTime() - 5 * 60 * 1000 : null;
+      edits.push({
+        user:        nickMap2[a.userId] || a.userId,
+        match:       m ? `${m.teamA} vs ${m.teamB}` : a.matchId,
+        from:        `${a.prevA}–${a.prevB}`,
+        to:          `${a.newA}–${a.newB}`,
+        changedAt:   new Date(changedMs).toISOString().replace('T',' ').slice(0,19) + ' UTC',
+        afterLock:   lockMs ? changedMs > lockMs : false,
+        minsAfterLock: lockMs ? Math.round((changedMs - lockMs) / 60000) : null,
+        lastMinute:  a.lastMinute,
+      });
+    });
+    edits.sort((a, b) => b.changedAt.localeCompare(a.changedAt));
+
+    let h = `<div style="margin-top:1.5rem">
+      <div style="font-weight:700;color:var(--silver);font-size:0.9rem;margin-bottom:0.75rem">📋 Edit History (${edits.length} change${edits.length !== 1 ? 's' : ''})</div>
+      <table style="width:100%;font-size:0.78rem;border-collapse:collapse">
+        <thead><tr style="color:var(--muted);text-align:left">
+          <th style="padding:0.3rem 0.5rem">User</th>
+          <th style="padding:0.3rem 0.5rem">Match</th>
+          <th style="padding:0.3rem 0.5rem">From</th>
+          <th style="padding:0.3rem 0.5rem">To</th>
+          <th style="padding:0.3rem 0.5rem">Changed At</th>
+          <th style="padding:0.3rem 0.5rem">Status</th>
+        </tr></thead><tbody>`;
+    edits.forEach(e => {
+      const status = e.afterLock
+        ? `<span style="color:#e74c3c">⚠️ +${e.minsAfterLock}m after lock</span>`
+        : e.lastMinute
+        ? `<span style="color:#e67e22">🔥 Last minute</span>`
+        : `<span style="color:var(--muted)">Before lock</span>`;
+      h += `<tr style="border-top:1px solid var(--border)">
+        <td style="padding:0.3rem 0.5rem;color:var(--gold)">${e.user}</td>
+        <td style="padding:0.3rem 0.5rem;color:var(--silver)">${e.match}</td>
+        <td style="padding:0.3rem 0.5rem;color:var(--muted)">${e.from}</td>
+        <td style="padding:0.3rem 0.5rem;color:#2ecc71">${e.to}</td>
+        <td style="padding:0.3rem 0.5rem;color:var(--silver)">${e.changedAt}</td>
+        <td style="padding:0.3rem 0.5rem">${status}</td>
+      </tr>`;
+    });
+    h += `</tbody></table></div>`;
+    resultsEl.innerHTML += h;
+  } catch (e) {
+    console.warn('Edit history fetch:', e);
   }
 }
 
