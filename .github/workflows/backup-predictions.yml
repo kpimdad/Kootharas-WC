@@ -1,0 +1,39 @@
+name: Backup Predictions on Kickoff
+
+on:
+  schedule:
+    # Runs every 30 minutes — catches every match kickoff within a 35-min window
+    - cron: '*/30 * * * *'
+  workflow_dispatch: # Manual trigger from Actions tab
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to commit the Excel file back to the repo
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: scripts
+
+      - name: Run prediction backup
+        run: node backup-predictions.js
+        working-directory: scripts
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Commit backup files (if any were created)
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add backups/
+          # Only commit if there's something new
+          git diff --staged --quiet || git commit -m "📊 Prediction backup: $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push
