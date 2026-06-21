@@ -1094,9 +1094,13 @@ function renderMyPredictions(tab) {
   document.getElementById('stat-acc').textContent    = accuracy + '%';
 
   // Split matches into upcoming (no result yet) and finished (result added by admin)
-  const upcomingMatches  = STATE.matches.filter(m => m.resultA == null || m.resultB == null);
-  const finishedMatches  = STATE.matches.filter(m => m.resultA != null && m.resultB != null);
-  const activeList       = myPredTab === 'upcoming' ? upcomingMatches : finishedMatches;
+  const upcomingMatches = STATE.matches
+    .filter(m => m.resultA == null || m.resultB == null)
+    .sort((a, b) => new Date(a.kickoffUTC) - new Date(b.kickoffUTC));   // earliest first
+  const finishedMatches = STATE.matches
+    .filter(m => m.resultA != null && m.resultB != null)
+    .sort((a, b) => new Date(b.kickoffUTC) - new Date(a.kickoffUTC));   // latest first
+  const activeList = myPredTab === 'upcoming' ? upcomingMatches : finishedMatches;
 
   const groups = {};
   activeList.forEach(m => {
@@ -1274,8 +1278,12 @@ function renderAdminMatches(tab) {
   if (tab) adminMatchTab = tab;
   const container = document.getElementById('admin-match-list');
 
-  const upcoming  = STATE.matches.filter(m => m.resultA == null || m.resultB == null);
-  const completed = STATE.matches.filter(m => m.resultA != null && m.resultB != null);
+  const upcoming  = STATE.matches
+    .filter(m => m.resultA == null || m.resultB == null)
+    .sort((a, b) => new Date(a.kickoffUTC) - new Date(b.kickoffUTC));   // earliest first
+  const completed = STATE.matches
+    .filter(m => m.resultA != null && m.resultB != null)
+    .sort((a, b) => new Date(b.kickoffUTC) - new Date(a.kickoffUTC));   // latest first
   const list = adminMatchTab === 'upcoming' ? upcoming : completed;
 
   const byDay = {};
