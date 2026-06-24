@@ -74,6 +74,17 @@ async function main() {
   const finished = (data.matches || []).filter(m => m.status === 'FINISHED');
   console.log(`Found ${finished.length} finished match(es) from API for ${today}`);
 
+  // Capture ranks BEFORE any updates (for rank arrow calculation)
+  const prevRanks = {};
+  try {
+    const usersSnap = await db.collection('users').get();
+    const allUsers = [];
+    usersSnap.forEach(d => allUsers.push({ id: d.id, pts: d.data().totalPoints || 0 }));
+    allUsers.sort((a, b) => b.pts - a.pts);
+    allUsers.forEach((u, i) => { prevRanks[u.id] = i + 1; });
+    console.log(`Pre-update ranks captured for ${allUsers.length} users`);
+  } catch (e) { console.warn('Could not capture pre-update ranks:', e.message); }
+
   let updated = 0;
 
   for (const apiMatch of finished) {
@@ -139,6 +150,20 @@ async function main() {
 
     console.log(`  ✅ ${ourMatch.teamA} ${rA}–${rB} ${ourMatch.teamB} · ${predsSnap.size} prediction(s) scored`);
     updated++;
+  }
+
+  // If any matches were updated, persist rank snapshot for arrow display
+  if (updated > 0 && Object.keys(prevRanks).length > 0) {
+    try {
+      const usersSnap2 = await db.collection('users').get();
+      const allUsers2 = [];
+      usersSnap2.forEach(d => allUsers2.push({ id: d.id, pts: d.data().totalPoints || 0 }));
+      allUsers2.sort((a, b) => b.pts - a.pts);
+      const currentRanks = {};
+      allUsers2.forEach((u, i) => { currentRanks[u.id] = i + 1; });
+      await db.collection('meta').doc('rankSnapshot').set({ prevRanks, currentRanks });
+      console.log('Rank snapshot written to Firestore');
+    } catch (e) { console.warn('Could not write rank snapshot:', e.message); }
   }
 
   // Write last-sync timestamp to Firestore so the app can show it
