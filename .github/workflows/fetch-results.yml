@@ -2,32 +2,31 @@ name: Fetch WC Results
 
 on:
   schedule:
-    # One cron per unique WC 2026 kickoff time, fired at:
-    #   kickoff + 2h30m  → covers normal time
-    #   kickoff + 3h30m  → covers extra time + penalties
-    # Script is idempotent — skips already-scored matches, so duplicate
-    # runs are harmless. Public repo = unlimited free Actions minutes.
+    # Fires at kickoff+2h (normal time) and kickoff+3h (extra time/penalties)
+    # for every unique WC 2026 kickoff time. Script fetches yesterday+today so
+    # matches near midnight UTC are never missed. Already-scored matches are
+    # skipped, so duplicate fires are harmless. Public repo = free unlimited minutes.
 
-    - cron: '30 2 * * *'   # 00:00 kickoff +2h30m
-    - cron: '30 3 * * *'   # 00:00 kickoff +3h30m / 00:30 kickoff +3h
-    - cron: '0 3 * * *'    # 00:30 kickoff +2h30m
-    - cron: '0 4 * * *'    # 00:30 kickoff +3h30m / 01:30 kickoff +2h30m
-    - cron: '30 4 * * *'   # 01:00 kickoff +3h30m
-    - cron: '0 5 * * *'    # 01:30 kickoff +3h30m
-    - cron: '30 5 * * *'   # 02:00 kickoff +3h30m
-    - cron: '30 6 * * *'   # 03:00 kickoff +3h30m
-    - cron: '30 7 * * *'   # 04:00 kickoff +3h30m
-    - cron: '30 18 * * *'  # 16:00 kickoff +2h30m
-    - cron: '30 19 * * *'  # 16:00 kickoff +3h30m
-    - cron: '30 20 * * *'  # 17:00 kickoff +3h30m
-    - cron: '30 21 * * *'  # 18:00 kickoff +3h30m
-    - cron: '30 22 * * *'  # 19:00 kickoff +3h30m
-    - cron: '0 23 * * *'   # 20:30 kickoff +2h30m
-    - cron: '30 23 * * *'  # 20:00 kickoff +3h30m
-    - cron: '0 0 * * *'    # 20:30 kickoff +3h30m
-    - cron: '30 0 * * *'   # 21:00 kickoff +3h30m
-    - cron: '30 1 * * *'   # 22:00 kickoff +3h30m
-    - cron: '0 2 * * *'    # 23:30 kickoff +2h30m
+    - cron: '0 2 * * *'    # 00:00 kickoff +2h
+    - cron: '0 3 * * *'    # 00:00 kickoff +3h
+    - cron: '30 2 * * *'   # 00:30 kickoff +2h
+    - cron: '30 3 * * *'   # 00:30 kickoff +3h
+    - cron: '0 4 * * *'    # 01:00 kickoff +3h
+    - cron: '30 4 * * *'   # 01:30 kickoff +3h
+    - cron: '0 5 * * *'    # 02:00 kickoff +3h
+    - cron: '0 6 * * *'    # 03:00 kickoff +3h
+    - cron: '0 7 * * *'    # 04:00 kickoff +3h
+    - cron: '0 18 * * *'   # 16:00 kickoff +2h
+    - cron: '0 19 * * *'   # 16:00 kickoff +3h
+    - cron: '0 20 * * *'   # 17:00 kickoff +3h
+    - cron: '0 21 * * *'   # 18:00 kickoff +3h
+    - cron: '0 22 * * *'   # 19:00 kickoff +3h
+    - cron: '30 22 * * *'  # 20:30 kickoff +2h
+    - cron: '0 23 * * *'   # 20:00 kickoff +3h
+    - cron: '30 23 * * *'  # 20:30 kickoff +3h
+    - cron: '0 0 * * *'    # 21:00 kickoff +3h
+    - cron: '0 1 * * *'    # 22:00 kickoff +3h
+    - cron: '30 1 * * *'   # 23:30 kickoff +2h
 
   workflow_dispatch: # Manual trigger from Actions tab
 

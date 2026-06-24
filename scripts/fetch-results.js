@@ -58,21 +58,25 @@ function fetchAPI(path) {
 async function main() {
   console.log(`[${new Date().toISOString()}] Starting WC result sync…`);
 
-  // Only fetch today's matches (UTC). This keeps reads/writes minimal — no
-  // point re-checking all historical results every run.
-  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  console.log(`Fetching results for date: ${today}`);
+  // Fetch yesterday + today (UTC) to avoid missing matches that kicked off
+  // near midnight — the run fires on the next UTC date and would miss them
+  // with a single-day filter. The script skips already-scored matches so
+  // fetching a wider window is harmless.
+  const now  = new Date();
+  const yesterday = new Date(now - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const today     = now.toISOString().slice(0, 10);
+  console.log(`Fetching results for ${yesterday} → ${today}`);
 
   let data;
   try {
-    data = await fetchAPI(`/v4/competitions/WC/matches?status=FINISHED&dateFrom=${today}&dateTo=${today}`);
+    data = await fetchAPI(`/v4/competitions/WC/matches?status=FINISHED&dateFrom=${yesterday}&dateTo=${today}`);
   } catch (e) {
     console.warn('Date-filtered fetch failed, retrying with season param…', e.message);
-    data = await fetchAPI(`/v4/competitions/WC/matches?status=FINISHED&season=2026&dateFrom=${today}&dateTo=${today}`);
+    data = await fetchAPI(`/v4/competitions/WC/matches?status=FINISHED&season=2026&dateFrom=${yesterday}&dateTo=${today}`);
   }
 
   const finished = (data.matches || []).filter(m => m.status === 'FINISHED');
-  console.log(`Found ${finished.length} finished match(es) from API for ${today}`);
+  console.log(`Found ${finished.length} finished match(es)`);
 
   // Capture ranks BEFORE any updates (for rank arrow calculation)
   const prevRanks = {};
