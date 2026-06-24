@@ -78,15 +78,21 @@ async function main() {
   const finished = (data.matches || []).filter(m => m.status === 'FINISHED');
   console.log(`Found ${finished.length} finished match(es)`);
 
-  // Capture ranks BEFORE any updates (for rank arrow calculation)
+  // Capture ranks BEFORE any updates — mirror the app's multi-level sort
+  // (points → exact scores → correct results → fewer predictions submitted)
   const prevRanks = {};
+  let allUsersData = [];
   try {
     const usersSnap = await db.collection('users').get();
-    const allUsers = [];
-    usersSnap.forEach(d => allUsers.push({ id: d.id, pts: d.data().totalPoints || 0 }));
-    allUsers.sort((a, b) => b.pts - a.pts);
-    allUsers.forEach((u, i) => { prevRanks[u.id] = i + 1; });
-    console.log(`Pre-update ranks captured for ${allUsers.length} users`);
+    usersSnap.forEach(d => { if (!d.data().isAdminAccount && !d.data().disabled) allUsersData.push({ id: d.id, ...d.data() }); });
+    allUsersData.sort((a, b) => {
+      if ((b.totalPoints          || 0) !== (a.totalPoints          || 0)) return (b.totalPoints          || 0) - (a.totalPoints          || 0);
+      if ((b.computedExact        || 0) !== (a.computedExact        || 0)) return (b.computedExact        || 0) - (a.computedExact        || 0);
+      if ((b.computedWinner       || 0) !== (a.computedWinner       || 0)) return (b.computedWinner       || 0) - (a.computedWinner       || 0);
+      return (a.predictionsSubmitted || 0) - (b.predictionsSubmitted || 0);
+    });
+    allUsersData.forEach((u, i) => { prevRanks[u.id] = i + 1; });
+    console.log(`Pre-update ranks captured for ${allUsersData.length} users`);
   } catch (e) { console.warn('Could not capture pre-update ranks:', e.message); }
 
   let updated = 0;
@@ -161,8 +167,13 @@ async function main() {
     try {
       const usersSnap2 = await db.collection('users').get();
       const allUsers2 = [];
-      usersSnap2.forEach(d => allUsers2.push({ id: d.id, pts: d.data().totalPoints || 0 }));
-      allUsers2.sort((a, b) => b.pts - a.pts);
+      usersSnap2.forEach(d => { if (!d.data().isAdminAccount && !d.data().disabled) allUsers2.push({ id: d.id, ...d.data() }); });
+      allUsers2.sort((a, b) => {
+        if ((b.totalPoints          || 0) !== (a.totalPoints          || 0)) return (b.totalPoints          || 0) - (a.totalPoints          || 0);
+        if ((b.computedExact        || 0) !== (a.computedExact        || 0)) return (b.computedExact        || 0) - (a.computedExact        || 0);
+        if ((b.computedWinner       || 0) !== (a.computedWinner       || 0)) return (b.computedWinner       || 0) - (a.computedWinner       || 0);
+        return (a.predictionsSubmitted || 0) - (b.predictionsSubmitted || 0);
+      });
       const currentRanks = {};
       allUsers2.forEach((u, i) => { currentRanks[u.id] = i + 1; });
       await db.collection('meta').doc('rankSnapshot').set({ prevRanks, currentRanks });

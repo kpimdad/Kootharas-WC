@@ -59,11 +59,18 @@ async function loadRankSnapshotFromFirestore() {
 
 // Called by saveMatchResult after points are updated.
 // ranksBefore = { userId: rank } captured before this result was scored.
+function multiLevelSort(a, b) {
+  if ((b.totalPoints    || 0) !== (a.totalPoints    || 0)) return (b.totalPoints    || 0) - (a.totalPoints    || 0);
+  if ((b.computedExact  || 0) !== (a.computedExact  || 0)) return (b.computedExact  || 0) - (a.computedExact  || 0);
+  if ((b.computedWinner || 0) !== (a.computedWinner || 0)) return (b.computedWinner || 0) - (a.computedWinner || 0);
+  return (a.predictionsSubmitted || 0) - (b.predictionsSubmitted || 0);
+}
+
 function persistRankSnapshot(ranksBefore) {
-  // Current ranks after points update
+  // Current ranks after points update — use same sort as leaderboard
   const ranksAfter = {};
   [...STATE.users]
-    .sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0))
+    .sort(multiLevelSort)
     .forEach((u, i) => { ranksAfter[u.id] = i + 1; });
 
   STATE.prevRanks = ranksBefore;   // update in-memory immediately
@@ -245,12 +252,7 @@ async function fetchUsers() {
   snap.forEach(d => {
     if (!d.data().disabled && !d.data().isAdminAccount) STATE.users.push({ id: d.id, ...d.data() });
   });
-  STATE.users.sort((a, b) => {
-    if ((b.totalPoints     || 0) !== (a.totalPoints     || 0)) return (b.totalPoints     || 0) - (a.totalPoints     || 0);
-    if ((b.computedExact   || 0) !== (a.computedExact   || 0)) return (b.computedExact   || 0) - (a.computedExact   || 0);
-    if ((b.computedWinner  || 0) !== (a.computedWinner  || 0)) return (b.computedWinner  || 0) - (a.computedWinner  || 0);
-    return (a.predictionsSubmitted || 0) - (b.predictionsSubmitted || 0); // fewer played = better
-  });
+  STATE.users.sort(multiLevelSort);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -870,7 +872,7 @@ async function openCompareModal(userId, nickname) {
 async function initLeaderboard() {
   document.getElementById('leaderboard-body').innerHTML =
     '<div class="loading-center"><div class="spinner"></div></div>';
-  await fetchUsers();
+  await Promise.all([fetchUsers(), loadRankSnapshotFromFirestore()]);
   await computeUserAccuracy();
   renderLeaderboard('overall');
 }
@@ -1361,11 +1363,9 @@ async function saveMatchResult(matchId, autoRA, autoRB) {
       deltas[p.userId] = (deltas[p.userId] || 0) + (pts - (p.pointsAwarded ?? 0));
     });
     await batch.commit();
-    // Capture ranks BEFORE applying point deltas (for rank arrow calculation)
+    // Capture ranks BEFORE applying point deltas — same sort as leaderboard
     const ranksBefore = {};
-    [...STATE.users]
-      .sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0))
-      .forEach((u, i) => { ranksBefore[u.id] = i + 1; });
+    [...STATE.users].sort(multiLevelSort).forEach((u, i) => { ranksBefore[u.id] = i + 1; });
 
     const uBatch = writeBatch(STATE.db);
     for (const [uid, delta] of Object.entries(deltas)) {
