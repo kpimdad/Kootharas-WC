@@ -800,8 +800,8 @@ async function computeUserAccuracy() {
     allPreds[p.userId] = (allPreds[p.userId] || 0) + 1;
     if (p.pointsAwarded != null) {
       finished[p.userId] = (finished[p.userId] || 0) + 1;
-      if (p.pointsAwarded === 13) { exactMap[p.userId]  = (exactMap[p.userId]  || 0) + 1; scored[p.userId] = (scored[p.userId] || 0) + 1; }
-      if (p.pointsAwarded === 10) { winnerMap[p.userId] = (winnerMap[p.userId] || 0) + 1; scored[p.userId] = (scored[p.userId] || 0) + 1; }
+      if (p.pointsAwarded === 13 || p.pointsAwarded === JOKER_PTS) { exactMap[p.userId]  = (exactMap[p.userId]  || 0) + 1; scored[p.userId] = (scored[p.userId] || 0) + 1; }
+      else if (p.pointsAwarded === 10) { winnerMap[p.userId] = (winnerMap[p.userId] || 0) + 1; scored[p.userId] = (scored[p.userId] || 0) + 1; }
     }
   });
   STATE.users.forEach(u => {
@@ -1099,9 +1099,10 @@ function renderMyPredictions(tab) {
 
   STATE.matches.forEach(m => {
     const p = STATE.predictions[m.matchId];
-    if (!p) return;
-    if (p.pointsAwarded === 13) { totalPts += 13; exact++; }
-    else if (p.pointsAwarded === 10) { totalPts += 10; winner++; }
+    if (!p || p.pointsAwarded == null) return;
+    totalPts += p.pointsAwarded;
+    if (p.pointsAwarded === 13 || p.pointsAwarded === JOKER_PTS) exact++;
+    else if (p.pointsAwarded === 10) winner++;
   });
 
   const scored = Object.values(STATE.predictions).filter(p => p.pointsAwarded != null);
@@ -2039,14 +2040,22 @@ async function rescoreAllMatches() {
     const completedMatches = STATE.matches.filter(m => m.status === 'completed' && m.resultA != null);
     let predCount = 0;
 
+    // Load all jokers so rescore preserves joker bonuses
+    const jokerMap = {};
+    const jSnap = await getDocs(collection(STATE.db, 'jokers'));
+    jSnap.forEach(d => { jokerMap[d.id] = new Set(d.data().matchIds || []); });
+
     for (const m of completedMatches) {
       const pSnap = await getDocs(query(collection(STATE.db, 'predictions'), where('matchId', '==', m.matchId)));
       if (pSnap.empty) continue;
       const batch = writeBatch(STATE.db);
       pSnap.forEach(d => {
         const p = d.data();
-        const pts = calculatePoints(p.predictedA, p.predictedB, m.resultA, m.resultB);
-        batch.update(d.ref, { pointsAwarded: pts });
+        const hasJoker = jokerMap[p.userId]?.has(m.matchId) || false;
+        const pts = hasJoker
+          ? ((p.predictedA === m.resultA && p.predictedB === m.resultB) ? JOKER_PTS : 0)
+          : calculatePoints(p.predictedA, p.predictedB, m.resultA, m.resultB);
+        batch.update(d.ref, { pointsAwarded: pts, jokerUsed: hasJoker });
         predCount++;
       });
       await batch.commit();
