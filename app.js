@@ -934,18 +934,25 @@ async function openCompareModal(userId, nickname) {
     const myPts  = mine?.pointsAwarded   ?? null;
     const thPts  = theirs?.pointsAwarded ?? null;
 
-    // Penalty pick row: only for knockout draws that went to pens
-    const isPenMatch = KNOCKOUT_STAGE_IDS.has(m.stage) && m.resultA === m.resultB && m.penaltyWinner != null;
+    // Penalty pick row: show for any knockout match where either user predicted a draw
+    const isKnockout = KNOCKOUT_STAGE_IDS.has(m.stage);
+    const mineDrawPred   = mine   && mine.predictedA   === mine.predictedB;
+    const theirsDrawPred = theirs && theirs.predictedA === theirs.predictedB;
+    const matchWentToPens = isKnockout && m.resultA === m.resultB && m.penaltyWinner != null;
+    const showPenRow = isKnockout && (mineDrawPred || theirsDrawPred || matchWentToPens);
     const penTeamName = side => side === 'teamA' ? `${getFlag(m.teamA, m.flagA)} ${m.teamA}` : side === 'teamB' ? `${getFlag(m.teamB, m.flagB)} ${m.teamB}` : null;
     const penPickHTML = (pred) => {
-      if (!isPenMatch) return '';
+      if (!showPenRow) return '';
       const pickedDraw = pred && pred.predictedA === pred.predictedB;
-      const pick = pickedDraw ? pred.penaltyPick : null;
+      if (!pickedDraw) return `<span style="font-size:0.7rem;color:var(--muted);margin-top:2px">🥅 –</span>`;
+      const pick = pred.penaltyPick;
       const teamLabel = penTeamName(pick);
-      const isCorrect = pick === m.penaltyWinner;
-      const color = !pick ? 'var(--muted)' : isCorrect ? '#2ecc71' : '#e74c3c';
-      const label = teamLabel ? `${isCorrect ? '✓' : '✗'} ${teamLabel}` : '🥅 –';
-      return `<span style="font-size:0.7rem;color:${color};margin-top:2px">${label}</span>`;
+      if (!pick || !teamLabel) return `<span style="font-size:0.7rem;color:var(--muted);margin-top:2px">🥅 –</span>`;
+      if (matchWentToPens) {
+        const isCorrect = pick === m.penaltyWinner;
+        return `<span style="font-size:0.7rem;color:${isCorrect ? '#2ecc71' : '#e74c3c'};margin-top:2px">${isCorrect ? '✓' : '✗'} ${teamLabel}</span>`;
+      }
+      return `<span style="font-size:0.7rem;color:var(--muted);margin-top:2px">🥅 ${teamLabel}</span>`;
     };
 
     return `<div class="compare-row">
