@@ -530,50 +530,58 @@
   {
     "matchId": "m089",
     "kickoffUTC": "2026-07-04T17:00:00Z",
-    "teamA": "TBD",
-    "teamB": "TBD"
+    "teamA": "Canada",
+    "teamB": "Morocco",
+    "stage": "R16"
   },
   {
     "matchId": "m090",
     "kickoffUTC": "2026-07-04T21:00:00Z",
-    "teamA": "TBD",
-    "teamB": "TBD"
+    "teamA": "Paraguay",
+    "teamB": "France",
+    "stage": "R16"
   },
   {
     "matchId": "m091",
     "kickoffUTC": "2026-07-05T20:00:00Z",
-    "teamA": "TBD",
-    "teamB": "TBD"
+    "teamA": "Brazil",
+    "teamB": "Norway",
+    "stage": "R16"
   },
   {
     "matchId": "m092",
     "kickoffUTC": "2026-07-06T00:00:00Z",
-    "teamA": "TBD",
-    "teamB": "TBD"
+    "teamA": "Mexico",
+    "teamB": "England",
+    "stage": "R16"
   },
   {
     "matchId": "m093",
     "kickoffUTC": "2026-07-06T19:00:00Z",
-    "teamA": "TBD",
-    "teamB": "TBD"
+    "teamA": "Portugal",
+    "teamB": "Spain",
+    "stage": "R16"
   },
   {
     "matchId": "m094",
     "kickoffUTC": "2026-07-07T00:00:00Z",
-    "teamA": "TBD",
-    "teamB": "TBD"
+    "teamA": "USA",
+    "teamB": "Belgium",
+    "stage": "R16"
   },
   {
     "matchId": "m095",
     "kickoffUTC": "2026-07-07T16:00:00Z",
-    "teamA": "TBD",
-    "teamB": "TBD"
+    "teamA": "Argentina",
+    "teamB": "Egypt",
+    "stage": "R16"
   },
   {
     "matchId": "m096",
     "kickoffUTC": "2026-07-07T20:00:00Z",
-    "teamA": "TBD",
-    "teamB": "TBD"
+    "teamA": "Switzerland",
+    "teamB": "Colombia",
+    "stage": "R16"
   },
   {
     "matchId": "m097",

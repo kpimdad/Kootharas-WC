@@ -646,49 +646,49 @@ const MATCHES = [
 
   {
     matchId: "m089", matchDay: "Round of 16", stage: "R16", group: null,
-    teamA: "TBD", teamB: "TBD", flagA: "🏳", flagB: "🏳",
+    teamA: "Canada", teamB: "Morocco", flagA: "🇨🇦", flagB: "🇲🇦",
     kickoffUTC: "2026-07-04T17:00:00Z", venue: "NRG Stadium, Houston",
     resultA: null, resultB: null, status: "upcoming"
   },
   {
     matchId: "m090", matchDay: "Round of 16", stage: "R16", group: null,
-    teamA: "TBD", teamB: "TBD", flagA: "🏳", flagB: "🏳",
+    teamA: "Paraguay", teamB: "France", flagA: "🇵🇾", flagB: "🇫🇷",
     kickoffUTC: "2026-07-04T21:00:00Z", venue: "Lincoln Financial Field, Philadelphia",
     resultA: null, resultB: null, status: "upcoming"
   },
   {
     matchId: "m091", matchDay: "Round of 16", stage: "R16", group: null,
-    teamA: "TBD", teamB: "TBD", flagA: "🏳", flagB: "🏳",
+    teamA: "Brazil", teamB: "Norway", flagA: "🇧🇷", flagB: "🇳🇴",
     kickoffUTC: "2026-07-05T20:00:00Z", venue: "MetLife Stadium, East Rutherford",
     resultA: null, resultB: null, status: "upcoming"
   },
   {
     matchId: "m092", matchDay: "Round of 16", stage: "R16", group: null,
-    teamA: "TBD", teamB: "TBD", flagA: "🏳", flagB: "🏳",
+    teamA: "Mexico", teamB: "England", flagA: "🇲🇽", flagB: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
     kickoffUTC: "2026-07-06T00:00:00Z", venue: "Estadio Azteca, Mexico City",
     resultA: null, resultB: null, status: "upcoming"
   },
   {
     matchId: "m093", matchDay: "Round of 16", stage: "R16", group: null,
-    teamA: "TBD", teamB: "TBD", flagA: "🏳", flagB: "🏳",
+    teamA: "Portugal", teamB: "Spain", flagA: "🇵🇹", flagB: "🇪🇸",
     kickoffUTC: "2026-07-06T19:00:00Z", venue: "AT&T Stadium, Arlington",
     resultA: null, resultB: null, status: "upcoming"
   },
   {
     matchId: "m094", matchDay: "Round of 16", stage: "R16", group: null,
-    teamA: "TBD", teamB: "TBD", flagA: "🏳", flagB: "🏳",
+    teamA: "USA", teamB: "Belgium", flagA: "🇺🇸", flagB: "🇧🇪",
     kickoffUTC: "2026-07-07T00:00:00Z", venue: "Lumen Field, Seattle",
     resultA: null, resultB: null, status: "upcoming"
   },
   {
     matchId: "m095", matchDay: "Round of 16", stage: "R16", group: null,
-    teamA: "TBD", teamB: "TBD", flagA: "🏳", flagB: "🏳",
+    teamA: "Argentina", teamB: "Egypt", flagA: "🇦🇷", flagB: "🇪🇬",
     kickoffUTC: "2026-07-07T16:00:00Z", venue: "Mercedes-Benz Stadium, Atlanta",
     resultA: null, resultB: null, status: "upcoming"
   },
   {
     matchId: "m096", matchDay: "Round of 16", stage: "R16", group: null,
-    teamA: "TBD", teamB: "TBD", flagA: "🏳", flagB: "🏳",
+    teamA: "Switzerland", teamB: "Colombia", flagA: "🇨🇭", flagB: "🇨🇴",
     kickoffUTC: "2026-07-07T20:00:00Z", venue: "BC Place, Vancouver",
     resultA: null, resultB: null, status: "upcoming"
   },
