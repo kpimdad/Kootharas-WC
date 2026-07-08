@@ -699,25 +699,25 @@ const MATCHES = [
 
   {
     matchId: "m097", matchDay: "Quarter-Final", stage: "QF", group: null,
-    teamA: "TBD", teamB: "TBD", flagA: "🏳", flagB: "🏳",
+    teamA: "France", teamB: "Morocco", flagA: "🇫🇷", flagB: "🇲🇦",
     kickoffUTC: "2026-07-09T20:00:00Z", venue: "Gillette Stadium, Foxborough",
     resultA: null, resultB: null, status: "upcoming"
   },
   {
     matchId: "m098", matchDay: "Quarter-Final", stage: "QF", group: null,
-    teamA: "TBD", teamB: "TBD", flagA: "🏳", flagB: "🏳",
+    teamA: "Spain", teamB: "Belgium", flagA: "🇪🇸", flagB: "🇧🇪",
     kickoffUTC: "2026-07-10T19:00:00Z", venue: "SoFi Stadium, Los Angeles",
     resultA: null, resultB: null, status: "upcoming"
   },
   {
     matchId: "m099", matchDay: "Quarter-Final", stage: "QF", group: null,
-    teamA: "TBD", teamB: "TBD", flagA: "🏳", flagB: "🏳",
-    kickoffUTC: "2026-07-11T20:00:00Z", venue: "Hard Rock Stadium, Miami",
+    teamA: "Norway", teamB: "England", flagA: "🇳🇴", flagB: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+    kickoffUTC: "2026-07-11T21:00:00Z", venue: "Hard Rock Stadium, Miami",
     resultA: null, resultB: null, status: "upcoming"
   },
   {
     matchId: "m100", matchDay: "Quarter-Final", stage: "QF", group: null,
-    teamA: "TBD", teamB: "TBD", flagA: "🏳", flagB: "🏳",
+    teamA: "Argentina", teamB: "Switzerland", flagA: "🇦🇷", flagB: "🇨🇭",
     kickoffUTC: "2026-07-12T01:00:00Z", venue: "Arrowhead Stadium, Kansas City",
     resultA: null, resultB: null, status: "upcoming"
   },

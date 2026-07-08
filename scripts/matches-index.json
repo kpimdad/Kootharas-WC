@@ -586,26 +586,30 @@
   {
     "matchId": "m097",
     "kickoffUTC": "2026-07-09T20:00:00Z",
-    "teamA": "TBD",
-    "teamB": "TBD"
+    "teamA": "France",
+    "teamB": "Morocco",
+    "stage": "QF"
   },
   {
     "matchId": "m098",
     "kickoffUTC": "2026-07-10T19:00:00Z",
-    "teamA": "TBD",
-    "teamB": "TBD"
+    "teamA": "Spain",
+    "teamB": "Belgium",
+    "stage": "QF"
   },
   {
     "matchId": "m099",
-    "kickoffUTC": "2026-07-11T20:00:00Z",
-    "teamA": "TBD",
-    "teamB": "TBD"
+    "kickoffUTC": "2026-07-11T21:00:00Z",
+    "teamA": "Norway",
+    "teamB": "England",
+    "stage": "QF"
   },
   {
     "matchId": "m100",
     "kickoffUTC": "2026-07-12T01:00:00Z",
-    "teamA": "TBD",
-    "teamB": "TBD"
+    "teamA": "Argentina",
+    "teamB": "Switzerland",
+    "stage": "QF"
   },
   {
     "matchId": "m101",
