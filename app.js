@@ -218,10 +218,21 @@ function getAvatarHTML(user, size = 36) {
 }
 
 // ── Scoring ────────────────────────────────────────────
-function calculatePoints(pA, pB, rA, rB) {
-  if (Math.sign(pA - pB) !== Math.sign(rA - rB)) return 0;   // wrong result
-  if (pA === rA && pB === rB) return 13;                       // exact score + correct result (10+3)
-  return 10;                                                    // correct result/winner only
+// From QF onwards (Jul 9 20:00 UTC) scoring increases: exact=25, result=15, penalty=20
+const QF_START_UTC = new Date('2026-07-09T20:00:00Z');
+const PENALTY_BONUS_QF = 20;
+
+function getScoring(kickoffUTC) {
+  return new Date(kickoffUTC) >= QF_START_UTC
+    ? { exact: 25, result: 15, penalty: PENALTY_BONUS_QF }
+    : { exact: 13, result: 10, penalty: 5 };
+}
+
+function calculatePoints(pA, pB, rA, rB, kickoffUTC) {
+  const { exact, result } = getScoring(kickoffUTC || 0);
+  if (Math.sign(pA - pB) !== Math.sign(rA - rB)) return 0;
+  if (pA === rA && pB === rB) return exact;
+  return result;
 }
 
 // ── Firestore ──────────────────────────────────────────
@@ -584,8 +595,8 @@ function renderMatchCard(m) {
   const jokerBadge = jokerOn ? `<span style="color:var(--accent);font-size:0.8rem;font-weight:700">⚡</span>` : '';
 
   // Prediction strip at bottom
-  const _EXACT_V  = new Set([13, 13 + PENALTY_BONUS, JOKER_PTS, JOKER_PTS + PENALTY_BONUS]);
-  const _WINNER_V = new Set([10, 10 + PENALTY_BONUS]);
+  const _EXACT_V  = new Set([13, 18, 20, 25, 45]);
+  const _WINNER_V = new Set([10, 15, 35]);
   let pickStrip = '';
   if (completed) {
     const pts = pred?.pointsAwarded;
@@ -858,8 +869,8 @@ function renderDeadlineBanner() {
 async function computeUserAccuracy() {
   const snap = await getDocs(collection(STATE.db, 'predictions'));
   const allPreds = {}, finished = {}, scored = {}, exactMap = {}, winnerMap = {}, penaltyMap = {};
-  const _EXACT  = new Set([13, 13 + PENALTY_BONUS, JOKER_PTS, JOKER_PTS + PENALTY_BONUS]);
-  const _WINNER = new Set([10, 10 + PENALTY_BONUS]);
+  const _EXACT  = new Set([13, 18, 20, 25, 45]);
+  const _WINNER = new Set([10, 15, 35]);
   snap.forEach(d => {
     const p = d.data();
     allPreds[p.userId] = (allPreds[p.userId] || 0) + 1;
@@ -917,8 +928,8 @@ async function openCompareModal(userId, nickname) {
     return;
   }
 
-  const EXACT_VALS  = new Set([13, 13 + PENALTY_BONUS, JOKER_PTS, JOKER_PTS + PENALTY_BONUS]);
-  const WINNER_VALS = new Set([10, 10 + PENALTY_BONUS]);
+  const EXACT_VALS  = new Set([13, 18, 20, 25, 45]);
+  const WINNER_VALS = new Set([10, 15, 35]);
   const ptsCls   = p => EXACT_VALS.has(p) ? 'exact' : WINNER_VALS.has(p) ? 'winner' : p === 0 ? 'wrong' : 'none';
   const ptsLabel = (p, jokerUsed) => {
     if (p == null) return '–';
@@ -1134,8 +1145,8 @@ function renderLeaderboardTable(users, filter, totalCompleted = 0) {
     <div class="lb-legend">
       <span>MF = Matches Finished</span>
       <span>MP = Matches Played</span>
-      <span>🎯 = Exact Score (13pts)</span>
-      <span>✅ = Correct Result (10pts)</span>
+      <span>🎯 = Exact Score (13/25pts)</span>
+      <span>✅ = Correct Result (10/15pts)</span>
     </div>`;
 
   document.getElementById('leaderboard-updated').textContent =
@@ -1195,8 +1206,8 @@ function renderMyPredictions(tab) {
   if (tab) myPredTab = tab;
   let totalPts = 0, exact = 0, winner = 0;
 
-  const EXACT_PT_VALS  = new Set([13, 13 + PENALTY_BONUS, JOKER_PTS, JOKER_PTS + PENALTY_BONUS]);
-  const WINNER_PT_VALS = new Set([10, 10 + PENALTY_BONUS]);
+  const EXACT_PT_VALS  = new Set([13, 18, 20, 25, 45]);
+  const WINNER_PT_VALS = new Set([10, 15, 35]);
   STATE.matches.forEach(m => {
     const p = STATE.predictions[m.matchId];
     if (!p || p.pointsAwarded == null) return;
@@ -1975,16 +1986,17 @@ async function saveMatchResult(matchId, autoRA, autoRB) {
     pSnap.forEach(d => {
       const p = d.data();
       const hasJoker = jokerEligible && (jokerMap[p.userId]?.has(matchId) || false);
+      const scoring = getScoring(matchState.kickoffUTC);
       let pts;
       if (hasJoker) {
-        pts = (p.predictedA === rA && p.predictedB === rB) ? JOKER_PTS : 0;
-        if (pts === JOKER_PTS) jokerHits++;
+        pts = (p.predictedA === rA && p.predictedB === rB) ? scoring.exact : 0;
+        if (pts === scoring.exact) jokerHits++;
       } else {
-        pts = calculatePoints(p.predictedA, p.predictedB, rA, rB);
+        pts = calculatePoints(p.predictedA, p.predictedB, rA, rB, matchState.kickoffUTC);
       }
-      // Penalty bonus: +5 if match went to pens, user predicted a draw, pick is correct
+      // Penalty bonus: if match went to pens, user predicted a draw, pick is correct
       const penBonus = (penaltyWinner && rA === rB && p.predictedA === p.predictedB && p.penaltyPick === penaltyWinner)
-        ? PENALTY_BONUS : 0;
+        ? scoring.penalty : 0;
       pts += penBonus;
       if (penBonus > 0) penaltyCorrect++;
       batch.update(d.ref, { pointsAwarded: pts, jokerUsed: hasJoker, penaltyBonusAwarded: penBonus });
@@ -2097,7 +2109,7 @@ async function renderJokerAudit() {
 
         // What they would have earned WITHOUT joker (normal scoring)
         const withoutPts = hasResult
-          ? calculatePoints(p.predictedA, p.predictedB, m.resultA, m.resultB)
+          ? calculatePoints(p.predictedA, p.predictedB, m.resultA, m.resultB, m.kickoffUTC)
           : null;
 
         // Net gain/loss vs normal scoring
@@ -2106,7 +2118,7 @@ async function renderJokerAudit() {
         if (earnedPts != null) totalJokerPts += earnedPts;
         if (withoutPts != null) totalWithoutPts += withoutPts;
 
-        const isHit = earnedPts === JOKER_PTS;
+        const isHit = earnedPts != null && earnedPts >= getScoring(m.kickoffUTC).exact;
         const isMiss = earnedPts === 0 && hasResult;
 
         const statusTag = isPending
@@ -2304,7 +2316,7 @@ async function saveAllBackdatePredictions() {
       if (!m) continue;
       const predId = `${userId}_${matchId}`;
       const pA = scores.a, pB = scores.b;
-      const pts = m.resultA != null ? calculatePoints(pA, pB, m.resultA, m.resultB) : null;
+      const pts = m.resultA != null ? calculatePoints(pA, pB, m.resultA, m.resultB, m.kickoffUTC) : null;
 
       const existingSnap = await getDoc(doc(STATE.db, 'predictions', predId));
       const oldPts = existingSnap.exists() ? (existingSnap.data().pointsAwarded ?? 0) : 0;
@@ -2442,11 +2454,12 @@ async function rescoreAllMatches() {
       pSnap.forEach(d => {
         const p = d.data();
         const hasJoker = jokerEligible && (jokerMap[p.userId]?.has(m.matchId) || false);
+        const rScoring = getScoring(m.kickoffUTC);
         let pts = hasJoker
-          ? ((p.predictedA === m.resultA && p.predictedB === m.resultB) ? JOKER_PTS : 0)
-          : calculatePoints(p.predictedA, p.predictedB, m.resultA, m.resultB);
+          ? ((p.predictedA === m.resultA && p.predictedB === m.resultB) ? rScoring.exact : 0)
+          : calculatePoints(p.predictedA, p.predictedB, m.resultA, m.resultB, m.kickoffUTC);
         // Penalty bonus
-        const rPenBonus = (penaltyWinner && p.predictedA === p.predictedB && p.penaltyPick === penaltyWinner) ? PENALTY_BONUS : 0;
+        const rPenBonus = (penaltyWinner && p.predictedA === p.predictedB && p.penaltyPick === penaltyWinner) ? rScoring.penalty : 0;
         pts += rPenBonus;
         batch.update(d.ref, { pointsAwarded: pts, jokerUsed: hasJoker, penaltyBonusAwarded: rPenBonus });
         predCount++;

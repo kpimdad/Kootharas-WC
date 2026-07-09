@@ -90,22 +90,31 @@ function findLocalMatch(apiMatch) {
 }
 
 // ── Scoring (mirror of app.js) ────────────────────────────────────────────────
-const JOKER_PTS    = 20; // exact score with joker = 20pts, wrong = 0pts
-const PENALTY_BONUS = 5; // correct penalty winner pick = +5pts
+// From QF onwards (Jul 9 20:00 UTC): exact=25, result=15, penalty=20
+const QF_START_UTC           = new Date('2026-07-09T20:00:00Z');
+const PENALTY_BONUS_QF       = 20;
 // Jokers only apply to matches that kick off on or after this date.
 const JOKER_START_UTC        = new Date('2026-06-28T00:00:00Z');
 const KNOCKOUT_STAGE_IDS_SET = new Set(['R32', 'R16', 'QF', 'SF', '3rd', 'F']);
 
-function calculatePoints(pA, pB, rA, rB) {
-  if (pA === rA && pB === rB) return 13;
-  const predWin = pA > pB ? 1 : pA < pB ? -1 : 0;
-  const realWin = rA > rB ? 1 : rA < rB ? -1 : 0;
-  return predWin === realWin ? 10 : 0;
+function getScoring(kickoffUTC) {
+  return new Date(kickoffUTC) >= QF_START_UTC
+    ? { exact: 25, result: 15, penalty: PENALTY_BONUS_QF }
+    : { exact: 13, result: 10, penalty: 5 };
 }
 
-function calculatePointsWithJoker(pA, pB, rA, rB, hasJoker) {
-  if (!hasJoker) return calculatePoints(pA, pB, rA, rB);
-  return (pA === rA && pB === rB) ? JOKER_PTS : 0;
+function calculatePoints(pA, pB, rA, rB, kickoffUTC) {
+  const { exact, result } = getScoring(kickoffUTC || 0);
+  if (pA === rA && pB === rB) return exact;
+  const predWin = pA > pB ? 1 : pA < pB ? -1 : 0;
+  const realWin = rA > rB ? 1 : rA < rB ? -1 : 0;
+  return predWin === realWin ? result : 0;
+}
+
+function calculatePointsWithJoker(pA, pB, rA, rB, hasJoker, kickoffUTC) {
+  if (!hasJoker) return calculatePoints(pA, pB, rA, rB, kickoffUTC);
+  const { exact } = getScoring(kickoffUTC || 0);
+  return (pA === rA && pB === rB) ? exact : 0;
 }
 
 // ── Fetch from football-data.org ──────────────────────────────────────────────
@@ -233,20 +242,21 @@ async function main() {
 
     const jokerEligible = new Date(ourMatch.kickoffUTC) >= JOKER_START_UTC;
     let skipped = 0, jokerHits = 0, penaltyCorrect = 0;
+    const matchScoring = getScoring(ourMatch.kickoffUTC);
     predsSnap.forEach(doc => {
       const p        = doc.data();
       const hasJoker = jokerEligible && (jokerMap[p.userId]?.has(ourMatch.matchId) || false);
-      let pts        = calculatePointsWithJoker(p.predictedA, p.predictedB, rA, rB, hasJoker);
-      // Penalty bonus: +5 if user predicted a draw and pick is correct
+      let pts        = calculatePointsWithJoker(p.predictedA, p.predictedB, rA, rB, hasJoker, ourMatch.kickoffUTC);
+      // Penalty bonus: if user predicted a draw and pick is correct
       const penBonus = (penaltyWinner && p.predictedA === p.predictedB && p.penaltyPick === penaltyWinner)
-        ? PENALTY_BONUS : 0;
+        ? matchScoring.penalty : 0;
       pts += penBonus;
       if (penBonus > 0) penaltyCorrect++;
       const prev = p.pointsAwarded ?? null;
       if (prev === pts) { skipped++; return; }  // already correct — skip write
       predBatch.update(doc.ref, { pointsAwarded: pts, jokerUsed: hasJoker, penaltyBonusAwarded: penBonus });
       deltas[p.userId] = (deltas[p.userId] || 0) + (pts - (prev ?? 0));
-      if (hasJoker && pts - penBonus === JOKER_PTS) jokerHits++;
+      if (hasJoker && pts - penBonus === matchScoring.exact) jokerHits++;
     });
     if (jokerHits > 0) console.log(`    (${jokerHits} joker hit(s) → ${JOKER_PTS} pts each)`);
     if (penaltyCorrect > 0) console.log(`    (${penaltyCorrect} penalty correct → +${PENALTY_BONUS} pts each)`);
