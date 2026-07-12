@@ -728,13 +728,13 @@ const MATCHES = [
 
   {
     matchId: "m101", matchDay: "Semi-Final", stage: "SF", group: null,
-    teamA: "TBD", teamB: "TBD", flagA: "🏳", flagB: "🏳",
+    teamA: "France", teamB: "Spain", flagA: "🇫🇷", flagB: "🇪🇸",
     kickoffUTC: "2026-07-14T19:00:00Z", venue: "AT&T Stadium, Arlington",
     resultA: null, resultB: null, status: "upcoming"
   },
   {
     matchId: "m102", matchDay: "Semi-Final", stage: "SF", group: null,
-    teamA: "TBD", teamB: "TBD", flagA: "🏳", flagB: "🏳",
+    teamA: "England", teamB: "Argentina", flagA: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", flagB: "🇦🇷",
     kickoffUTC: "2026-07-15T19:00:00Z", venue: "Mercedes-Benz Stadium, Atlanta",
     resultA: null, resultB: null, status: "upcoming"
   },
