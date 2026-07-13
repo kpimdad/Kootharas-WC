@@ -1315,8 +1315,9 @@ function renderMyPredictions(tab) {
 
 const BRACKET_LOCK_UTC = '2026-07-14T19:00:00Z'; // locks at first SF kickoff
 const BRACKET_ROUNDS = [
-  { key: 'runnerUp',label: 'Runner-Up',  count: 1, pts: 10 },
-  { key: 'champion',label: 'Champion 🏆',count: 1, pts: 15 },
+  { key: 'sf',       label: 'Semi-Finalists', count: 2, pts: 8, alwaysLocked: true },
+  { key: 'runnerUp', label: 'Runner-Up',      count: 1, pts: 10 },
+  { key: 'champion', label: 'Champion 🏆',    count: 1, pts: 15 },
 ];
 
 const JOKER_MAX = 5;
@@ -1510,9 +1511,11 @@ async function renderKnockoutPicksTab() {
         ? bracketResults[round.key]
         : (bracketResults[round.key] || [])[i]; // not directly comparable but scored separately
 
+      const roundLocked = locked || !!round.alwaysLocked;
+
       // Score badge
       let badge = '';
-      if (locked && hasResults && val) {
+      if (roundLocked && hasResults && val) {
         const actualList = slots === 1
           ? [bracketResults[round.key]]
           : (bracketResults[round.key] || []);
@@ -1520,15 +1523,16 @@ async function renderKnockoutPicksTab() {
         badge = isHit
           ? `<span class="bracket-score-badge hit">+${round.pts} ✓</span>`
           : `<span class="bracket-score-badge miss">✗</span>`;
-      } else if (locked && val && !hasResults) {
+      } else if (roundLocked && val && !hasResults) {
         badge = `<span class="bracket-score-badge pending">Pending</span>`;
       }
 
       const labelText = slots > 1 ? `Pick ${i + 1}` : round.label;
+      const lockIcon = round.alwaysLocked && !locked ? ' 🔒' : '';
       picksHTML += `
         <div class="bracket-pick-row">
-          <label>${labelText}</label>
-          <select class="bracket-select" data-round="${round.key}" data-idx="${i}" ${locked ? 'disabled' : ''}>
+          <label>${labelText}${lockIcon}</label>
+          <select class="bracket-select" data-round="${round.key}" data-idx="${i}" ${roundLocked ? 'disabled' : ''}>
             <option value="">— Pick a team —</option>
             ${ALL_TEAMS.map(t => `<option value="${t}" ${t === val ? 'selected' : ''}>${t}</option>`).join('')}
           </select>
@@ -1616,8 +1620,9 @@ async function renderAdminBracket() {
 
   // Build team selector for each round
   const ADMIN_ROUNDS = [
-    { key: 'runnerUp', label: 'Runner-Up',   count: 1 },
-    { key: 'champion', label: 'Champion 🏆', count: 1 },
+    { key: 'sf',       label: 'Semi-Finalists (2 teams)', count: 2 },
+    { key: 'runnerUp', label: 'Runner-Up',                 count: 1 },
+    { key: 'champion', label: 'Champion 🏆',               count: 1 },
   ];
 
   formEl.innerHTML = ADMIN_ROUNDS.map(round => {
@@ -1679,7 +1684,7 @@ async function scoreBrackets() {
   // Collect admin-selected results
   const results = {};
   const ADMIN_ROUNDS = [
-    { key: 'runnerUp', count: 1 }, { key: 'champion', count: 1 },
+    { key: 'sf', count: 2 }, { key: 'runnerUp', count: 1 }, { key: 'champion', count: 1 },
   ];
   for (const round of ADMIN_ROUNDS) {
     const selected = [...document.querySelectorAll(`.bracket-admin-tag[data-round="${round.key}"].selected`)]
@@ -1692,7 +1697,7 @@ async function scoreBrackets() {
 
     // Score each bracket
     const bSnap = await getDocs(collection(STATE.db, 'brackets'));
-    const SCORING = { runnerUp: 10, champion: 15 };
+    const SCORING = { sf: 8, runnerUp: 10, champion: 15 };
     let totalScored = 0;
 
     const batch = writeBatch(STATE.db);
