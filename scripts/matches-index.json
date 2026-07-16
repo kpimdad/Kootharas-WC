@@ -628,13 +628,15 @@
   {
     "matchId": "m103",
     "kickoffUTC": "2026-07-18T21:00:00Z",
-    "teamA": "TBD",
-    "teamB": "TBD"
+    "teamA": "France",
+    "teamB": "England",
+    "stage": "3RD"
   },
   {
     "matchId": "m104",
     "kickoffUTC": "2026-07-19T19:00:00Z",
-    "teamA": "TBD",
-    "teamB": "TBD"
+    "teamA": "Spain",
+    "teamB": "Argentina",
+    "stage": "FINAL"
   }
 ]
