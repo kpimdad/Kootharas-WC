@@ -434,7 +434,7 @@ async function handleRegister() {
 // ═══════════════════════════════════════════════════════
 // CHAMPION / GOLDEN BOOT PICKS
 // ═══════════════════════════════════════════════════════
-const CHAMPION_LOCK_UTC = '2026-07-19T19:00:00Z'; // locks at Final kickoff
+const CHAMPION_LOCK_UTC = '2026-07-16T00:00:00Z'; // locked now
 function isChampionLocked() { return Date.now() >= new Date(CHAMPION_LOCK_UTC).getTime(); }
 
 function populateTeamSelects() {
