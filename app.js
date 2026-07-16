@@ -1324,7 +1324,7 @@ function renderMyPredictions(tab) {
 const BRACKET_LOCK_UTC = '2026-07-19T19:00:00Z'; // locks at Final kickoff
 const BRACKET_ROUNDS = [
   { key: 'sf',       label: 'Semi-Finalists', count: 2, pts: 8,  alwaysLocked: true },
-  { key: 'runnerUp', label: 'Runner-Up',      count: 1, pts: 10, alwaysLocked: true },
+  { key: 'runnerUp', label: 'Runner-Up',      count: 1, pts: 10 },
   { key: 'champion', label: 'Champion 🏆',    count: 1, pts: 15 },
 ];
 
