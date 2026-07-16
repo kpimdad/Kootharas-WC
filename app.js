@@ -434,6 +434,9 @@ async function handleRegister() {
 // ═══════════════════════════════════════════════════════
 // CHAMPION / GOLDEN BOOT PICKS
 // ═══════════════════════════════════════════════════════
+const CHAMPION_LOCK_UTC = '2026-07-19T19:00:00Z'; // locks at Final kickoff
+function isChampionLocked() { return Date.now() >= new Date(CHAMPION_LOCK_UTC).getTime(); }
+
 function populateTeamSelects() {
   const opts = ALL_TEAMS.map(t => `<option value="${t}">${t}</option>`).join('');
   const blank = '<option value="">— Pick a team —</option>';
@@ -446,13 +449,18 @@ async function openChampionModal(userData = null) {
   if (userData?.championPick)   document.getElementById('champion-select').value    = userData.championPick;
   if (userData?.goldenBootPick) document.getElementById('golden-boot-select').value = userData.goldenBootPick;
 
-  const hasPicks = userData?.championPick && userData?.goldenBootPick;
-  document.getElementById('skip-champion-btn').textContent = hasPicks ? 'Close' : 'Skip for now';
+  const locked = isChampionLocked();
+  document.getElementById('champion-select').disabled    = locked;
+  document.getElementById('golden-boot-select').disabled = locked;
+  document.getElementById('save-champion-btn').disabled  = locked;
+  document.getElementById('save-champion-btn').textContent = locked ? '🔒 Picks Locked' : 'Save My Picks';
+  document.getElementById('skip-champion-btn').textContent = (userData?.championPick && userData?.goldenBootPick) ? 'Close' : (locked ? 'Close' : 'Skip for now');
 
   document.getElementById('champion-modal').style.display = 'flex';
 }
 
 async function saveChampionPick() {
+  if (isChampionLocked()) { showToast('Picks are locked 🔒', 'error'); return; }
   const champion   = document.getElementById('champion-select').value;
   const goldenBoot = document.getElementById('golden-boot-select').value;
   if (!champion || !goldenBoot) { showToast('Pick both a champion and a top-scorer team', 'error'); return; }
