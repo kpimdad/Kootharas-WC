@@ -1313,10 +1313,10 @@ function renderMyPredictions(tab) {
 // VIEW 6 — WILD CARDS (Knockout Picks + Jokers)
 // ═══════════════════════════════════════════════════════
 
-const BRACKET_LOCK_UTC = '2026-07-14T19:00:00Z'; // locks at first SF kickoff
+const BRACKET_LOCK_UTC = '2026-07-19T19:00:00Z'; // locks at Final kickoff
 const BRACKET_ROUNDS = [
-  { key: 'sf',       label: 'Semi-Finalists', count: 2, pts: 8, alwaysLocked: true },
-  { key: 'runnerUp', label: 'Runner-Up',      count: 1, pts: 10 },
+  { key: 'sf',       label: 'Semi-Finalists', count: 2, pts: 8,  alwaysLocked: true },
+  { key: 'runnerUp', label: 'Runner-Up',      count: 1, pts: 10, alwaysLocked: true },
   { key: 'champion', label: 'Champion 🏆',    count: 1, pts: 15 },
 ];
 
@@ -1488,7 +1488,7 @@ async function renderKnockoutPicksTab() {
   // Banner
   let bannerHTML = locked
     ? `<div class="bracket-lock-banner">🔒 Bracket locked · ${new Date(BRACKET_LOCK_UTC).toLocaleDateString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'UTC'})} UTC</div>`
-    : `<div class="bracket-lock-banner open">✅ Open · Locks ${new Date(BRACKET_LOCK_UTC).toLocaleDateString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'UTC'})} UTC at SF kickoff</div>`;
+    : `<div class="bracket-lock-banner open">✅ Open · Locks ${new Date(BRACKET_LOCK_UTC).toLocaleDateString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'UTC'})} UTC at Final kickoff</div>`;
 
   // Summary if has bonus pts
   let summaryHTML = bonusPts > 0
