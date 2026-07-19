@@ -1617,14 +1617,30 @@ async function renderAdminBracket() {
 
   let bracketResults = {};
   let allBrackets = [];
+  let championResults = {};
   try {
-    const [rSnap, bSnap] = await Promise.all([
+    const [rSnap, bSnap, cSnap] = await Promise.all([
       getDoc(doc(STATE.db, 'bracketResults', 'results')),
       getDocs(collection(STATE.db, 'brackets')),
+      getDoc(doc(STATE.db, 'config', 'championResults')),
     ]);
     if (rSnap.exists()) bracketResults = rSnap.data();
+    if (cSnap.exists()) championResults = cSnap.data();
     bSnap.forEach(d => allBrackets.push(d.data()));
   } catch(e) { console.warn('admin bracket load:', e); }
+
+  // Populate champion / golden boot selects
+  const teamOpts = ALL_TEAMS.map(t => `<option value="${t}">${t}</option>`).join('');
+  const winnerSel = document.getElementById('admin-champion-winner');
+  const bootSel   = document.getElementById('admin-champion-boot');
+  if (winnerSel) {
+    winnerSel.innerHTML = '<option value="">— Select winner —</option>' + teamOpts;
+    if (championResults.winner) winnerSel.value = championResults.winner;
+  }
+  if (bootSel) {
+    bootSel.innerHTML = '<option value="">— Select team —</option>' + teamOpts;
+    if (championResults.goldenBoot) bootSel.value = championResults.goldenBoot;
+  }
 
   // Build team selector for each round
   const ADMIN_ROUNDS = [
@@ -1739,6 +1755,51 @@ async function scoreBrackets() {
     resultEl.innerHTML = `<span style="color:#e74c3c">Error: ${e.message}</span>`;
   } finally {
     btn.disabled = false; btn.textContent = 'Score All Brackets';
+  }
+}
+
+const CHAMPION_PTS    = 50;
+const GOLDEN_BOOT_PTS = 25;
+
+async function scoreChampionPicks() {
+  const btn      = document.getElementById('score-champion-btn');
+  const resultEl = document.getElementById('champion-score-result');
+  const winner   = document.getElementById('admin-champion-winner').value;
+  const boot     = document.getElementById('admin-champion-boot').value;
+  if (!winner || !boot) { showToast('Select both winner and Golden Boot team', 'error'); return; }
+  btn.disabled = true; btn.textContent = 'Scoring…';
+
+  try {
+    await setDoc(doc(STATE.db, 'config', 'championResults'), { winner, goldenBoot: boot });
+
+    await fetchUsers();
+    const batch = writeBatch(STATE.db);
+    let scored = 0;
+
+    STATE.users.forEach(u => {
+      const champPts  = u.championPick   === winner ? CHAMPION_PTS    : 0;
+      const bootPts   = u.goldenBootPick === boot   ? GOLDEN_BOOT_PTS : 0;
+      const newBonus  = champPts + bootPts;
+      const prevBonus = (u.championBonusPts || 0) + (u.goldenBootBonusPts || 0);
+      const delta     = newBonus - prevBonus;
+
+      const uRef = doc(STATE.db, 'users', u.id);
+      batch.update(uRef, {
+        championBonusPts:   champPts,
+        goldenBootBonusPts: bootPts,
+        totalPoints: (u.totalPoints || 0) + delta,
+      });
+      u.totalPoints = (u.totalPoints || 0) + delta;
+      scored++;
+    });
+
+    await batch.commit();
+    resultEl.innerHTML = `<span style="color:#2ecc71">✅ ${scored} user(s) scored · 🏆 ${winner} · ⚽ ${boot}</span>`;
+    showToast('✅ Champion picks scored', 'success');
+  } catch(e) {
+    resultEl.innerHTML = `<span style="color:#e74c3c">Error: ${e.message}</span>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Score Champion Picks';
   }
 }
 
@@ -3026,6 +3087,7 @@ function wireEvents() {
   document.getElementById('rescore-all-btn').addEventListener('click', rescoreAllMatches);
   document.getElementById('run-audit-btn').addEventListener('click', runIntegrityAudit);
   document.getElementById('score-brackets-btn').addEventListener('click', scoreBrackets);
+  document.getElementById('score-champion-btn').addEventListener('click', scoreChampionPicks);
   document.getElementById('share-standings-btn').addEventListener('click', shareStandings);
 
   // Champion modal
