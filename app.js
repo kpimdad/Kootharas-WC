@@ -1644,7 +1644,7 @@ async function renderAdminBracket() {
 
   // Build team selector for each round
   const ADMIN_ROUNDS = [
-    { key: 'sf',       label: 'Semi-Finalists (2 teams)', count: 2 },
+    { key: 'sf',       label: 'Semi-Finalists (4 teams)', count: 4 },
     { key: 'runnerUp', label: 'Runner-Up',                 count: 1 },
     { key: 'champion', label: 'Champion 🏆',               count: 1 },
   ];
@@ -1708,7 +1708,7 @@ async function scoreBrackets() {
   // Collect admin-selected results
   const results = {};
   const ADMIN_ROUNDS = [
-    { key: 'sf', count: 2 }, { key: 'runnerUp', count: 1 }, { key: 'champion', count: 1 },
+    { key: 'sf', count: 4 }, { key: 'runnerUp', count: 1 }, { key: 'champion', count: 1 },
   ];
   for (const round of ADMIN_ROUNDS) {
     const selected = [...document.querySelectorAll(`.bracket-admin-tag[data-round="${round.key}"].selected`)]
