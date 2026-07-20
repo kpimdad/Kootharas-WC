@@ -1635,17 +1635,43 @@ async function renderAdminBracket() {
     bSnap.forEach(d => allBrackets.push(d.data()));
   } catch(e) { console.warn('admin bracket load:', e); }
 
-  // Populate champion / golden boot selects
-  const teamOpts = ALL_TEAMS.map(t => `<option value="${t}">${t}</option>`).join('');
-  const winnerSel = document.getElementById('admin-champion-winner');
-  const bootSel   = document.getElementById('admin-champion-boot');
-  if (winnerSel) {
-    winnerSel.innerHTML = '<option value="">— Select winner —</option>' + teamOpts;
-    if (championResults.winner) winnerSel.value = championResults.winner;
-  }
-  if (bootSel) {
-    bootSel.innerHTML = '<option value="">— Select team —</option>' + teamOpts;
-    if (championResults.goldenBoot) bootSel.value = championResults.goldenBoot;
+  // Render champion / golden boot tag pickers
+  const CHAMPION_ROUNDS = [
+    { key: 'winner',     label: '🏆 Tournament Winner', count: 1 },
+    { key: 'goldenBoot', label: '⚽ Golden Boot Team',  count: 2 },
+  ];
+  const savedWinner    = championResults.winner     ? [championResults.winner]     : [];
+  const savedBoot      = Array.isArray(championResults.goldenBoot)
+    ? championResults.goldenBoot
+    : (championResults.goldenBoot ? [championResults.goldenBoot] : []);
+  const savedChampion  = { winner: savedWinner, goldenBoot: savedBoot };
+
+  const champFormEl = document.getElementById('champion-admin-form');
+  if (champFormEl) {
+    champFormEl.innerHTML = CHAMPION_ROUNDS.map(round => {
+      const selected = savedChampion[round.key] || [];
+      const tags = ALL_TEAMS.map(t =>
+        `<span class="bracket-admin-tag ${selected.includes(t) ? 'selected' : ''}"
+               data-round="champ-${round.key}" data-team="${t}" data-max="${round.count}">${t}</span>`
+      ).join('');
+      return `<div class="bracket-admin-round"><h4>${round.label}</h4><div class="bracket-admin-tags">${tags}</div></div>`;
+    }).join('');
+
+    champFormEl.querySelectorAll('.bracket-admin-tag').forEach(tag => {
+      tag.addEventListener('click', () => {
+        const { round, team, max } = tag.dataset;
+        const maxN = parseInt(max);
+        const siblings = champFormEl.querySelectorAll(`.bracket-admin-tag[data-round="${round}"]`);
+        const selectedNow = [...siblings].filter(s => s.classList.contains('selected'));
+        if (tag.classList.contains('selected')) {
+          tag.classList.remove('selected');
+        } else if (selectedNow.length < maxN) {
+          tag.classList.add('selected');
+        } else {
+          showToast(`Max ${maxN} team(s) for this pick`, 'error');
+        }
+      });
+    });
   }
 
   // Build team selector for each round
@@ -1770,21 +1796,27 @@ const GOLDEN_BOOT_PTS = 25;
 async function scoreChampionPicks() {
   const btn      = document.getElementById('score-champion-btn');
   const resultEl = document.getElementById('champion-score-result');
-  const winner   = document.getElementById('admin-champion-winner').value;
-  const boot     = document.getElementById('admin-champion-boot').value;
-  if (!winner || !boot) { showToast('Select both winner and Golden Boot team', 'error'); return; }
+  const champForm = document.getElementById('champion-admin-form');
+
+  const winner = [...champForm.querySelectorAll('.bracket-admin-tag[data-round="champ-winner"].selected')]
+    .map(t => t.dataset.team)[0] || null;
+  const bootTeams = [...champForm.querySelectorAll('.bracket-admin-tag[data-round="champ-goldenBoot"].selected')]
+    .map(t => t.dataset.team);
+
+  if (!winner) { showToast('Select a Tournament Winner', 'error'); return; }
+  if (bootTeams.length === 0) { showToast('Select at least one Golden Boot team', 'error'); return; }
   btn.disabled = true; btn.textContent = 'Scoring…';
 
   try {
-    await setDoc(doc(STATE.db, 'config', 'championResults'), { winner, goldenBoot: boot });
+    await setDoc(doc(STATE.db, 'config', 'championResults'), { winner, goldenBoot: bootTeams });
 
     await fetchUsers();
     const batch = writeBatch(STATE.db);
     let scored = 0;
 
     STATE.users.forEach(u => {
-      const champPts  = u.championPick   === winner ? CHAMPION_PTS    : 0;
-      const bootPts   = u.goldenBootPick === boot   ? GOLDEN_BOOT_PTS : 0;
+      const champPts  = u.championPick   === winner              ? CHAMPION_PTS    : 0;
+      const bootPts   = bootTeams.includes(u.goldenBootPick)     ? GOLDEN_BOOT_PTS : 0;
       const newBonus  = champPts + bootPts;
       const prevBonus = (u.championBonusPts || 0) + (u.goldenBootBonusPts || 0);
       const delta     = newBonus - prevBonus;
@@ -1800,7 +1832,7 @@ async function scoreChampionPicks() {
     });
 
     await batch.commit();
-    resultEl.innerHTML = `<span style="color:#2ecc71">✅ ${scored} user(s) scored · 🏆 ${winner} · ⚽ ${boot}</span>`;
+    resultEl.innerHTML = `<span style="color:#2ecc71">✅ ${scored} user(s) scored · 🏆 ${winner} · ⚽ ${bootTeams.join(', ')}</span>`;
     showToast('✅ Champion picks scored', 'success');
   } catch(e) {
     resultEl.innerHTML = `<span style="color:#e74c3c">Error: ${e.message}</span>`;

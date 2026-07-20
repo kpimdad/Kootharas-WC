@@ -521,23 +521,10 @@
       <div class="admin-card-head">🏆 Tournament Winner & Golden Boot</div>
       <div class="admin-card-body">
         <p style="font-size:0.875rem;color:var(--silver);margin-bottom:1.25rem">
-          Set the actual winner (+50 pts) and Golden Boot team (+25 pts) to score all user picks.
+          Set the actual winner (+50 pts) and Golden Boot team (+25 pts). Select up to 2 teams for Golden Boot.
         </p>
-        <div style="display:flex;flex-direction:column;gap:1rem;margin-bottom:1.25rem">
-          <div>
-            <label style="font-size:0.8rem;color:var(--muted);display:block;margin-bottom:0.4rem">🏆 Tournament Winner</label>
-            <select id="admin-champion-winner" style="width:100%;max-width:280px;background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.75rem;font-size:0.9rem">
-              <option value="">— Select winner —</option>
-            </select>
-          </div>
-          <div>
-            <label style="font-size:0.8rem;color:var(--muted);display:block;margin-bottom:0.4rem">⚽ Golden Boot team</label>
-            <select id="admin-champion-boot" style="width:100%;max-width:280px;background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.75rem;font-size:0.9rem">
-              <option value="">— Select team —</option>
-            </select>
-          </div>
-        </div>
-        <button id="score-champion-btn" class="btn btn-primary" style="width:auto">Score Champion Picks</button>
+        <div id="champion-admin-form"></div>
+        <button id="score-champion-btn" class="btn btn-primary" style="width:auto;margin-top:1.25rem">Score Champion Picks</button>
         <div id="champion-score-result" style="margin-top:1rem;font-size:0.875rem"></div>
       </div>
     </div>
@@ -685,7 +672,7 @@
 <script>
   function loadApp() {
     const s = document.createElement('script');
-    s.src = 'app.js?v=38';
+    s.src = 'app.js?v=39';
     document.body.appendChild(s);
   }
   if (window.firebaseReady) {
