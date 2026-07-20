@@ -261,10 +261,14 @@ async function fetchMyPredictions() {
 
 async function fetchBrackets() {
   try {
-    const snap = await getDocs(collection(STATE.db, 'brackets'));
+    const [bSnap, rSnap] = await Promise.all([
+      getDocs(collection(STATE.db, 'brackets')),
+      getDoc(doc(STATE.db, 'bracketResults', 'results')),
+    ]);
     STATE.brackets = {};
-    snap.forEach(d => { STATE.brackets[d.id] = d.data(); });
-  } catch(e) { STATE.brackets = {}; }
+    bSnap.forEach(d => { STATE.brackets[d.id] = d.data(); });
+    STATE.bracketResults = rSnap.exists() ? rSnap.data() : {};
+  } catch(e) { STATE.brackets = {}; STATE.bracketResults = {}; }
 }
 
 async function fetchUsers() {
@@ -1108,14 +1112,36 @@ function renderLeaderboardTable(users, filter, totalCompleted = 0) {
       <td class="lb-td-pts"><span class="lb-pts">${pts}</span>${(u.penaltyPts > 0 && !filter) ? `<span style="display:block;font-size:0.62rem;color:var(--muted);margin-top:2px">🥅+${u.penaltyPts}</span>` : ''}</td>
     </tr>`;
 
-    // Bracket bonus
+    // Bracket bonus with breakdown tooltip
     const bracket = (STATE.brackets || {})[u.id];
-    const bracketBonus = bracket?.bonusPts != null
-      ? `<span class="lb-drawer-pick"><span class="lb-drawer-lbl">🗓️ Wild Cards</span>+${bracket.bonusPts} pts</span>`
-      : '';
-    const bracketChampion = bracket?.champion
-      ? `<span class="lb-drawer-pick"><span class="lb-drawer-lbl">🏆 Bracket Pick</span>${bracket.champion}</span>`
-      : '';
+    const br = STATE.bracketResults || {};
+    let bracketBonus = '';
+    if (bracket?.bonusPts != null) {
+      const BSCORING = { sf: 8, runnerUp: 10, champion: 15 };
+      const sfPicks   = [].concat(bracket.sf   || []).filter(Boolean);
+      const sfActual  = [].concat(br.sf         || []).filter(Boolean);
+      const ruPick    = bracket.runnerUp || null;
+      const ruActual  = br.runnerUp      || null;
+      const chPick    = bracket.champion  || null;
+      const chActual  = br.champion       || null;
+
+      const sfRows = sfPicks.map(p => {
+        const hit = sfActual.includes(p);
+        return `<div class="wc-tip-row ${hit ? 'hit' : 'miss'}">${hit ? '✓' : '✗'} SF: ${p}<span>${hit ? '+'+BSCORING.sf : '0'} pts</span></div>`;
+      }).join('') || (Object.keys(br).length ? `<div class="wc-tip-row miss">✗ SF: —<span>0 pts</span></div>` : '');
+      const ruRow = ruPick
+        ? `<div class="wc-tip-row ${ruPick===ruActual ? 'hit':'miss'}">${ruPick===ruActual?'✓':'✗'} Runner-Up: ${ruPick}<span>${ruPick===ruActual?'+'+BSCORING.runnerUp:'0'} pts</span></div>`
+        : '';
+      const chRow = chPick
+        ? `<div class="wc-tip-row ${chPick===chActual ? 'hit':'miss'}">${chPick===chActual?'✓':'✗'} Champion: ${chPick}<span>${chPick===chActual?'+'+BSCORING.champion:'0'} pts</span></div>`
+        : '';
+
+      bracketBonus = `<span class="lb-drawer-pick wc-tip-trigger" tabindex="0">
+        <span class="lb-drawer-lbl">🗓️ Wild Cards</span>+${bracket.bonusPts} pts
+        <div class="wc-tip-box">${sfRows}${ruRow}${chRow}</div>
+      </span>`;
+    }
+    const bracketChampion = '';
 
     // Champion / golden boot bonus
     const champBonus   = u.championBonusPts   > 0 ? `<span class="lb-drawer-pick"><span class="lb-drawer-lbl">🏆 Winner Bonus</span>+${u.championBonusPts} pts</span>`   : '';
@@ -1179,6 +1205,16 @@ function renderLeaderboardTable(users, filter, totalCompleted = 0) {
         const drawer = row.nextElementSibling;
         if (drawer?.classList.contains('lb-tr-drawer')) drawer.classList.add('open');
       }
+    });
+  });
+
+  // Wild Cards tooltip — tap to toggle on mobile
+  document.querySelectorAll('.wc-tip-trigger').forEach(el => {
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      const wasOpen = el.classList.contains('open');
+      document.querySelectorAll('.wc-tip-trigger.open').forEach(o => o.classList.remove('open'));
+      if (!wasOpen) el.classList.add('open');
     });
   });
 

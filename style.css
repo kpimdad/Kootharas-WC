@@ -891,6 +891,45 @@ body { padding-bottom: calc(126px + env(safe-area-inset-bottom)); }
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
+/* Wild Cards breakdown tooltip */
+.wc-tip-trigger {
+  position: relative;
+  cursor: pointer;
+}
+.wc-tip-box {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.6rem 0.75rem;
+  min-width: 200px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  z-index: 99;
+  white-space: nowrap;
+}
+.wc-tip-trigger:hover .wc-tip-box,
+.wc-tip-trigger:focus .wc-tip-box,
+.wc-tip-trigger.open .wc-tip-box {
+  display: block;
+}
+.wc-tip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.2rem 0;
+  color: var(--text);
+}
+.wc-tip-row span { color: var(--muted); }
+.wc-tip-row.hit  { color: #2ecc71; }
+.wc-tip-row.hit span { color: #2ecc71; }
+.wc-tip-row.miss { color: var(--muted); }
+
 .lb-drawer-compare {
   width: 100%;
   font-size: 0.9rem;
