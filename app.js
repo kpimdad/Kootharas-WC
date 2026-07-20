@@ -1111,11 +1111,15 @@ function renderLeaderboardTable(users, filter, totalCompleted = 0) {
     // Bracket bonus
     const bracket = (STATE.brackets || {})[u.id];
     const bracketBonus = bracket?.bonusPts != null
-      ? `<span class="lb-drawer-pick"><span class="lb-drawer-lbl">🗓️ Bracket</span>+${bracket.bonusPts} pts</span>`
+      ? `<span class="lb-drawer-pick"><span class="lb-drawer-lbl">🗓️ Wild Cards</span>+${bracket.bonusPts} pts</span>`
       : '';
     const bracketChampion = bracket?.champion
       ? `<span class="lb-drawer-pick"><span class="lb-drawer-lbl">🏆 Bracket Pick</span>${bracket.champion}</span>`
       : '';
+
+    // Champion / golden boot bonus
+    const champBonus   = u.championBonusPts   > 0 ? `<span class="lb-drawer-pick"><span class="lb-drawer-lbl">🏆 Winner Bonus</span>+${u.championBonusPts} pts</span>`   : '';
+    const bootBonus    = u.goldenBootBonusPts  > 0 ? `<span class="lb-drawer-pick"><span class="lb-drawer-lbl">⚽ Boot Bonus</span>+${u.goldenBootBonusPts} pts</span>`    : '';
 
     // Expandable drawer — shows champion/golden boot picks + bracket
     const drawerRow = `<tr class="lb-tr-drawer" data-uid="${u.id}">
@@ -1126,6 +1130,8 @@ function renderLeaderboardTable(users, filter, totalCompleted = 0) {
             <span class="lb-drawer-pick"><span class="lb-drawer-lbl">⚽ Top Scorer</span>${boot}</span>
             ${bracketChampion}
             ${bracketBonus}
+            ${champBonus}
+            ${bootBonus}
           </div>
         </div>
       </td>
